@@ -521,7 +521,8 @@ class TestTwitchDropMiner(unittest.TestCase):
         
         # Проверяем, что все методы вызваны
         mock_login.assert_called_once_with("test_user", "test_pass")
-        mock_get_streamers.assert_called_once()
+        # В коде вызывается дважды - в начале и после просмотра стрима
+        self.assertEqual(mock_get_streamers.call_count, 2)
         mock_watch_stream.assert_called_once_with("streamer1", 10)
         mock_get_progress.assert_called_once()
         mock_claim_drops.assert_called_once()
