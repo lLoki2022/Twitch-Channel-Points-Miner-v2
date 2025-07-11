@@ -355,6 +355,66 @@ async def get_streamers_for_game(game_id: str, access_token: str):
         logger.error(f"Ошибка получения стримеров для игры {game_id}: {str(e)}")
         return []
 
+async def search_games_by_name(game_name: str, access_token: str):
+    """Поиск игры по названию через Twitch API"""
+    headers = {
+        'Client-ID': TWITCH_CLIENT_ID,
+        'Authorization': f'Bearer {access_token}'
+    }
+    
+    try:
+        # Поиск игры по названию
+        response = requests.get(
+            f"{TWITCH_API_BASE}/games",
+            headers=headers,
+            params={'name': game_name}
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            games = []
+            
+            for game in data.get('data', []):
+                games.append({
+                    'id': game['id'],
+                    'name': game['name'],
+                    'box_art_url': game['box_art_url'].replace('{width}', '144').replace('{height}', '192'),
+                    'has_drops': True  # Предполагаем, что у найденной игры есть дропы
+                })
+            
+            return games
+        
+        return []
+    except Exception as e:
+        logger.error(f"Ошибка поиска игры {game_name}: {str(e)}")
+        return []
+
+async def get_all_games_with_drops(access_token: str):
+    """Получить все игры с активными дропами из Twitch API"""
+    try:
+        # Получаем кампании дропов
+        campaigns = await get_drops_campaigns(access_token)
+        games = []
+        seen_games = set()
+        
+        for campaign in campaigns:
+            game_data = campaign.get("game", {})
+            if game_data and game_data.get("id") not in seen_games:
+                games.append({
+                    'id': game_data.get("id"),
+                    'name': game_data.get("displayName"),
+                    'box_art_url': f"https://static-cdn.jtvnw.net/ttv-boxart/{game_data.get('id')}_IGDB-144x192.jpg",
+                    'has_drops': True
+                })
+                seen_games.add(game_data.get("id"))
+        
+        logger.info(f"Найдено {len(games)} игр с активными дропами")
+        return games
+        
+    except Exception as e:
+        logger.error(f"Ошибка получения игр с дропами: {str(e)}")
+        return []
+
 async def get_games_with_drops():
     """Получить популярные игры с дропами"""
     # Известные игры с дропами (статический список)
