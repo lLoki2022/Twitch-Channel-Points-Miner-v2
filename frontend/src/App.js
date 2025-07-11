@@ -275,6 +275,8 @@ function App() {
             console.error('Error details:', error.response?.data || error.message);
             setShowAddAccountModal(false);
             alert('Ошибка при получении кода активации: ' + (error.response?.data?.detail || error.message));
+          } finally {
+            setIsLoadingVerification(false);
           }
         };
 
