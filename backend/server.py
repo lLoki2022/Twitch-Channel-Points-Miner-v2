@@ -1003,7 +1003,20 @@ async def search_games_endpoint(q: str):
     if not q or len(q) < 2:
         raise HTTPException(status_code=400, detail="Запрос должен содержать минимум 2 символа")
     
-    games = await search_games(q)
+    logger.info(f"API: Поиск игр по запросу: {q}")
+    
+    # Получить первый доступный аккаунт для доступа к API
+    account = await db.accounts.find_one({"is_authenticated": True})
+    access_token = account.get("access_token") if account else None
+    
+    if access_token:
+        logger.info(f"API: Используется токен аккаунта {account.get('username')} для поиска")
+    else:
+        logger.warning("API: Нет доступных токенов для поиска через Twitch API")
+    
+    games = await search_games(q, access_token)
+    
+    logger.info(f"API: Найдено {len(games)} игр по запросу: {q}")
     return games
 
 @api_router.get("/games/{game_id}/drops")
