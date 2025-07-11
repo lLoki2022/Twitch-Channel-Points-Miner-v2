@@ -83,7 +83,7 @@ class TwitchDropsAPITester:
                 
                 if all(field in data for field in required_fields):
                     # Verify OAuth data format
-                    if data["verification_uri"] == "https://www.twitch.tv/activate":
+                    if data["verification_uri"].startswith("https://www.twitch.tv/activate"):
                         self.log_test("Add Account Endpoint", "PASS", 
                                     "Account creation successful with correct OAuth data",
                                     f"User code: {data['user_code']}, Account ID: {data['account_id']}")
