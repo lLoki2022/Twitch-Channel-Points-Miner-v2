@@ -52,7 +52,14 @@ const AddAccountModal = ({ isOpen, onClose, onAccountAdded }) => {
           if (authResponse.status === 200) {
             clearInterval(interval);
             setAuthInterval(null);
-            onAccountAdded();
+            
+            // Показать сообщение об успехе
+            alert(`Аккаунт ${authResponse.data.account.username} успешно добавлен!`);
+            
+            // Обновить данные
+            await onAccountAdded();
+            
+            // Закрыть модальное окно
             onClose();
           }
         } catch (err) {
