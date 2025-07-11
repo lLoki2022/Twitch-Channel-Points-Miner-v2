@@ -675,6 +675,8 @@ const App = () => {
                   key={account.id}
                   account={account}
                   onDelete={(id) => setAccounts(prev => prev.filter(a => a.id !== id))}
+                  loadData={loadData}
+                  addNotification={addNotification}
                 />
               ))}
             </div>
