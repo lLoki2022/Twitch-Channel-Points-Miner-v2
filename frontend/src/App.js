@@ -736,6 +736,11 @@ const App = () => {
         loadData(); // Обновить данные
       } else if (data.type === 'status_update') {
         setMonitoring(prev => ({...prev, ...data.data}));
+      } else if (data.type === 'streamer_selected') {
+        addNotification(`📺 Выбран стример: ${data.data.streamer} для ${data.data.game} (${data.data.account})`);
+      } else if (data.type === 'drop_progress') {
+        // Можно добавить обновление прогресса в реальном времени
+        console.log('Drop progress update:', data.data);
       }
     };
     
