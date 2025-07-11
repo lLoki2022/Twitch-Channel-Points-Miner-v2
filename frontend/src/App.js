@@ -17,7 +17,7 @@ import {
   Settings
 } from 'lucide-react';
 
-const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || '';
+const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
 function App() {
   const [activeTab, setActiveTab] = useState('accounts');
