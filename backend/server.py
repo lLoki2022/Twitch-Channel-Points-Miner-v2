@@ -58,6 +58,22 @@ class TwitchAccount(BaseModel):
     current_stream: Optional[Dict] = None  # Текущий стрим который смотрит
     current_game: Optional[str] = None  # Текущая игра для которой фармит дропы
 
+class DropProgress(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    account_id: str
+    drop_id: str
+    drop_name: str
+    campaign_name: str
+    game_name: str
+    game_id: str
+    required_minutes: int
+    current_minutes: int
+    is_claimed: bool = False
+    streamer_name: Optional[str] = None
+    streamer_id: Optional[str] = None
+    started_at: datetime = Field(default_factory=datetime.utcnow)
+    last_updated: datetime = Field(default_factory=datetime.utcnow)
+
 class TwitchAccountCreate(BaseModel):
     username: str
 
