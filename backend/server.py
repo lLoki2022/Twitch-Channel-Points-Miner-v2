@@ -239,7 +239,16 @@ def poll_for_token(device_code: str):
             "grant_type": "urn:ietf:params:oauth:grant-type:device_code"
         }
         
-        response = requests.post(TWITCH_OAUTH_URL, data=data)
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        
+        logger.info(f"Опрос токена для device_code: {device_code[:10]}...")
+        response = requests.post(TWITCH_OAUTH_URL, data=data, headers=headers, timeout=10)
+        
+        logger.info(f"Статус ответа: {response.status_code}")
+        logger.info(f"Ответ: {response.text}")
+        
         return response.json()
     except Exception as e:
         logger.error(f"Ошибка опроса токена: {e}")
