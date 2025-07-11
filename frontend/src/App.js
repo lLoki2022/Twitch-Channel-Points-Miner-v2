@@ -39,8 +39,13 @@ const AddAccountModal = ({ isOpen, onClose, onAccountAdded }) => {
       // Открыть страницу авторизации
       window.open(deviceData.verification_uri, '_blank');
       
-      // Начать проверку авторизации
+      // Начать проверку авторизации с увеличенным интервалом
+      let attempts = 0;
+      const maxAttempts = Math.floor(deviceData.expires_in / deviceData.interval);
+      
       const interval = setInterval(async () => {
+        attempts++;
+        
         try {
           const authResponse = await axios.post(`${API}/accounts/authorize?device_code=${deviceData.device_code}`);
           
@@ -53,15 +58,22 @@ const AddAccountModal = ({ isOpen, onClose, onAccountAdded }) => {
         } catch (err) {
           if (err.response?.status === 202) {
             // Продолжаем ожидать
+            if (attempts >= maxAttempts) {
+              clearInterval(interval);
+              setAuthInterval(null);
+              setError('Время авторизации истекло. Попробуйте снова.');
+              setStep(1);
+            }
             return;
           } else {
             clearInterval(interval);
             setAuthInterval(null);
-            setError('Ошибка авторизации: ' + (err.response?.data?.detail || err.message));
+            const errorMessage = err.response?.data?.detail || err.message;
+            setError('Ошибка авторизации: ' + errorMessage);
             setStep(1);
           }
         }
-      }, deviceData.interval * 1000);
+      }, Math.max(deviceData.interval * 1000, 3000)); // Минимум 3 секунды между запросами
       
       setAuthInterval(interval);
       
