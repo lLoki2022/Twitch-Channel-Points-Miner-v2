@@ -1,0 +1,9 @@
+{
+  "accounts": [],
+  "settings": {
+    "check_interval": 60,
+    "auto_claim_drops": true,
+    "watch_time_minutes": 30,
+    "language": "ru"
+  }
+}
