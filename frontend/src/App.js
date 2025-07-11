@@ -215,9 +215,17 @@ const AccountCard = ({ account, onDelete }) => {
     setIsDeleting(true);
     try {
       await axios.delete(`${API}/accounts/${account.id}`);
+      
+      // Обновить локальное состояние через callback
       onDelete(account.id);
+      
+      // Обновить данные с сервера
+      await loadData();
+      
+      addNotification('✅ Аккаунт удален!');
     } catch (err) {
-      alert('Ошибка удаления аккаунта: ' + (err.response?.data?.detail || err.message));
+      console.error('Ошибка удаления аккаунта:', err);
+      addNotification('❌ Ошибка удаления аккаунта: ' + (err.response?.data?.detail || err.message));
     } finally {
       setIsDeleting(false);
     }
