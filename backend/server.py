@@ -975,6 +975,28 @@ async def get_account_drops_progress(account_id: str):
         "total_drops": len(drops_progress)
     }
 
+@api_router.get("/logs")
+async def get_logs():
+    """Получить последние логи системы"""
+    try:
+        # Читать логи из файла supervisor
+        with open('/var/log/supervisor/backend.out.log', 'r') as f:
+            logs = f.readlines()
+        
+        # Взять последние 100 строк
+        recent_logs = logs[-100:] if len(logs) > 100 else logs
+        
+        return {
+            "logs": recent_logs,
+            "total_lines": len(recent_logs)
+        }
+    except Exception as e:
+        logger.error(f"Ошибка получения логов: {str(e)}")
+        return {
+            "logs": [f"Ошибка получения логов: {str(e)}"],
+            "total_lines": 1
+        }
+
 @api_router.get("/drops/{account_id}")
 async def get_account_drops(account_id: str):
     """Получить дропы для конкретного аккаунта"""
