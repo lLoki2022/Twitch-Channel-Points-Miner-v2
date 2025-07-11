@@ -157,11 +157,32 @@ const AddAccountModal = ({ isOpen, onClose, onAccountAdded }) => {
               <p className="font-semibold text-lg mt-2">
                 Код: <span className="text-purple-600">{deviceCode.user_code}</span>
               </p>
+              <p className="text-sm text-gray-500 mt-2">
+                ⏰ Время действия кода: {Math.floor(deviceCode.expires_in / 60)} минут
+              </p>
             </div>
             
-            <div className="flex items-center justify-center mb-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-              <span className="ml-2 text-gray-600">Ожидание авторизации...</span>
+            <div className="bg-blue-50 border border-blue-200 rounded p-4 mb-4">
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
+                <div>
+                  <p className="text-blue-800 font-medium">Ожидание авторизации...</p>
+                  <p className="text-blue-600 text-sm">
+                    Авторизуйтесь на сайте Twitch, после чего аккаунт будет добавлен автоматически
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-sm text-gray-600 mb-4">
+              <p>📝 <strong>Инструкция:</strong></p>
+              <ol className="list-decimal list-inside mt-2 space-y-1">
+                <li>Нажмите на ссылку выше (откроется в новой вкладке)</li>
+                <li>Введите код: <span className="font-mono font-bold text-purple-600">{deviceCode.user_code}</span></li>
+                <li>Нажмите "Продолжить" на сайте Twitch</li>
+                <li>Авторизуйтесь в своем аккаунте Twitch</li>
+                <li>Разрешите доступ к приложению</li>
+              </ol>
             </div>
             
             <button
