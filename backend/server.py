@@ -409,44 +409,71 @@ async def get_auth_device_code():
 @api_router.post("/accounts/authorize")
 async def authorize_account(device_code: str):
     """Проверить авторизацию и добавить аккаунт"""
-    token_result = await check_device_authorization(device_code)
-    
-    if not token_result:
-        raise HTTPException(status_code=400, detail="Ошибка проверки авторизации")
-    
-    if token_result.get("error"):
-        if token_result["error"] == "authorization_pending":
-            raise HTTPException(status_code=202, detail="Ожидание авторизации")
-        else:
-            raise HTTPException(status_code=400, detail=f"Ошибка авторизации: {token_result['error']}")
-    
-    access_token = token_result.get("access_token")
-    refresh_token = token_result.get("refresh_token")
-    
-    if not access_token:
-        raise HTTPException(status_code=400, detail="Не удалось получить токен доступа")
-    
-    # Получить информацию о пользователе
-    user_info = await get_user_info(access_token)
-    if not user_info:
-        raise HTTPException(status_code=400, detail="Не удалось получить информацию о пользователе")
-    
-    # Проверить, что аккаунт не существует
-    existing_account = await db.accounts.find_one({"user_id": user_info["id"]})
-    if existing_account:
-        raise HTTPException(status_code=400, detail="Аккаунт уже существует")
-    
-    # Создать новый аккаунт
-    account = TwitchAccount(
-        username=user_info["display_name"],
-        user_id=user_info["id"],
-        access_token=access_token,
-        refresh_token=refresh_token
-    )
-    
-    await db.accounts.insert_one(account.dict())
-    
-    return {"message": "Аккаунт успешно добавлен", "account": account}
+    try:
+        logger.info(f"Проверка авторизации для device_code: {device_code[:10]}...")
+        
+        token_result = await check_device_authorization(device_code)
+        
+        if not token_result:
+            logger.error("Не удалось получить результат проверки авторизации")
+            raise HTTPException(status_code=500, detail="Ошибка сервера при проверке авторизации")
+        
+        logger.info(f"Результат проверки авторизации: {token_result}")
+        
+        if token_result.get("error"):
+            error_code = token_result["error"]
+            if error_code == "authorization_pending":
+                raise HTTPException(status_code=202, detail="Ожидание авторизации")
+            elif error_code == "slow_down":
+                raise HTTPException(status_code=202, detail="Слишком частые запросы, ожидание...")
+            elif error_code == "expired_token":
+                raise HTTPException(status_code=400, detail="Время авторизации истекло. Попробуйте снова.")
+            elif error_code == "access_denied":
+                raise HTTPException(status_code=400, detail="Авторизация отклонена пользователем")
+            else:
+                raise HTTPException(status_code=400, detail=f"Ошибка авторизации: {error_code}")
+        
+        access_token = token_result.get("access_token")
+        refresh_token = token_result.get("refresh_token")
+        
+        if not access_token:
+            logger.error("Токен доступа не найден в ответе")
+            raise HTTPException(status_code=400, detail="Не удалось получить токен доступа")
+        
+        logger.info("Получение информации о пользователе...")
+        
+        # Получить информацию о пользователе
+        user_info = await get_user_info(access_token)
+        if not user_info:
+            logger.error("Не удалось получить информацию о пользователе")
+            raise HTTPException(status_code=400, detail="Не удалось получить информацию о пользователе")
+        
+        logger.info(f"Пользователь: {user_info.get('display_name', 'Unknown')}")
+        
+        # Проверить, что аккаунт не существует
+        existing_account = await db.accounts.find_one({"user_id": user_info["id"]})
+        if existing_account:
+            logger.warning(f"Аккаунт {user_info['display_name']} уже существует")
+            raise HTTPException(status_code=400, detail="Аккаунт уже существует")
+        
+        # Создать новый аккаунт
+        account = TwitchAccount(
+            username=user_info["display_name"],
+            user_id=user_info["id"],
+            access_token=access_token,
+            refresh_token=refresh_token
+        )
+        
+        await db.accounts.insert_one(account.dict())
+        
+        logger.info(f"Аккаунт {user_info['display_name']} успешно добавлен")
+        return {"message": "Аккаунт успешно добавлен", "account": account}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Неожиданная ошибка при авторизации: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
 
 @api_router.delete("/accounts/{account_id}")
 async def delete_account(account_id: str):
