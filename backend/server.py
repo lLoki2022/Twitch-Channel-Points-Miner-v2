@@ -966,26 +966,6 @@ async def get_game_streamers(game_id: str):
         "total_streamers": len(streamers)
     }
 
-@api_router.get("/drops/progress")
-async def get_drops_progress():
-    """Получить прогресс всех дропов для всех аккаунтов"""
-    drops_progress = await db.drops_progress.find({}, {"_id": 0}).to_list(1000)
-    return drops_progress
-
-@api_router.get("/drops/progress/{account_id}")
-async def get_account_drops_progress(account_id: str):
-    """Получить прогресс дропов для конкретного аккаунта"""
-    account = await db.accounts.find_one({"id": account_id})
-    if not account:
-        raise HTTPException(status_code=404, detail="Аккаунт не найден")
-    
-    drops_progress = await db.drops_progress.find({"account_id": account_id}, {"_id": 0}).to_list(1000)
-    return {
-        "account": account["username"],
-        "drops_progress": drops_progress,
-        "total_drops": len(drops_progress)
-    }
-
 # Statistics endpoints
 @api_router.get("/statistics")
 async def get_statistics():
