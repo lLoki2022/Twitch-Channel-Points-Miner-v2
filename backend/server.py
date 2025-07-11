@@ -82,12 +82,20 @@ class Settings(BaseModel):
     auto_claim_drops: bool = True
     watch_time_minutes: int = 30
     language: str = "ru"
+    monitored_games: List[str] = Field(default_factory=list)  # Список ID игр для мониторинга
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class SettingsUpdate(BaseModel):
     check_interval: Optional[int] = None
     auto_claim_drops: Optional[bool] = None
     watch_time_minutes: Optional[int] = None
+    monitored_games: Optional[List[str]] = None
+
+class GameInfo(BaseModel):
+    id: str
+    name: str
+    box_art_url: str
+    has_drops: bool = False
 
 class MonitoringStatus(BaseModel):
     active: bool
