@@ -888,6 +888,16 @@ const App = () => {
           addNotification('✅ Настройки сохранены!');
         }}
       />
+      
+      <GameSelectionModal
+        isOpen={isGameSelectionModalOpen}
+        onClose={() => setIsGameSelectionModalOpen(false)}
+        settings={settings}
+        onSettingsUpdate={async () => {
+          await loadData();
+          addNotification('🎮 Игры для мониторинга обновлены!');
+        }}
+      />
     </div>
   );
 };
