@@ -256,8 +256,8 @@ class TwitchDropsMinerTest:
             
             assert result == False, "Удаление несуществующего аккаунта должно возвращать False"
             
-            # Test statistics display
-            with patch('builtins.print') as mock_print:
+            # Test statistics display - mock input to avoid EOF error
+            with patch('builtins.print') as mock_print, patch('builtins.input', return_value=''):
                 miner.show_statistics()
             
             stats_output = [str(call) for call in mock_print.call_args_list]
