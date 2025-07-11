@@ -88,9 +88,8 @@ function App() {
   const addAccount = async () => {
     try {
       setLoading(true);
-      const response = await axios.post(`${API_BASE_URL}/api/accounts/add`);
       setShowAddAccountModal(true);
-      // Перезагружаем аккаунты
+      // Данные для верификации получаем в модальном окне
       await loadAccounts();
     } catch (error) {
       console.error('Ошибка добавления аккаунта:', error);
