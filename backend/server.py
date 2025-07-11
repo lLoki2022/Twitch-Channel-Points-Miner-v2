@@ -55,6 +55,8 @@ class TwitchAccount(BaseModel):
     status: str = "active"  # active, error, expired
     last_check: Optional[datetime] = None
     drops_claimed: int = 0
+    current_stream: Optional[Dict] = None  # Текущий стрим который смотрит
+    current_game: Optional[str] = None  # Текущая игра для которой фармит дропы
 
 class TwitchAccountCreate(BaseModel):
     username: str
