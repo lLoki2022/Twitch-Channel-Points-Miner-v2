@@ -148,10 +148,26 @@ async def check_device_authorization(device_code: str) -> Optional[Dict]:
     
     try:
         response = requests.post(token_url, data=token_data)
-        return response.json()
+        result = response.json()
+        
+        # Логируем ответ для отладки
+        logger.info(f"Twitch API response status: {response.status_code}")
+        logger.info(f"Twitch API response body: {result}")
+        
+        # Если статус не 200, но есть JSON ответ с ошибкой - это нормально
+        if response.status_code != 200:
+            # Twitch возвращает ошибки в формате {"error": "authorization_pending", "error_description": "..."}
+            if "error" in result:
+                return result
+            else:
+                logger.error(f"Неожиданный ответ от Twitch API: {result}")
+                return {"error": "server_error", "error_description": "Неожиданный ответ от сервера"}
+        
+        return result
+        
     except Exception as e:
         logger.error(f"Ошибка проверки авторизации: {str(e)}")
-        return None
+        return {"error": "server_error", "error_description": str(e)}
 
 async def get_user_info(access_token: str) -> Optional[Dict]:
     """Получить информацию о пользователе"""
