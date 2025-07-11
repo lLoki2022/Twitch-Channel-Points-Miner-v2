@@ -270,7 +270,9 @@ function App() {
             
           } catch (error) {
             console.error('Ошибка начала верификации:', error);
+            console.error('Error details:', error.response?.data || error.message);
             setShowAddAccountModal(false);
+            alert('Ошибка при получении кода активации: ' + (error.response?.data?.detail || error.message));
           }
         };
 
