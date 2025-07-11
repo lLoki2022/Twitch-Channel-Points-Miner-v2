@@ -483,9 +483,11 @@ async def get_games_with_drops():
     
     return popular_games
 
-async def search_games(query: str):
-    """Поиск игр по названию"""
-    # Простой поиск по названию в статическом списке
+async def search_games(query: str, access_token: str = None):
+    """Поиск игр по названию в статическом списке и через Twitch API"""
+    logger.info(f"Поиск игр по запросу: {query}")
+    
+    # Поиск в статическом списке
     all_games = await get_games_with_drops()
     
     # Расширенный список для поиска
@@ -525,10 +527,25 @@ async def search_games(query: str):
     query_lower = query.lower()
     matched_games = []
     
+    # Поиск в локальном списке
     for game in extended_games:
         if query_lower in game["name"].lower():
             matched_games.append(game)
     
+    # Если не найдено в локальном списке, попробовать поиск через Twitch API
+    if not matched_games and access_token:
+        logger.info(f"Поиск через Twitch API для запроса: {query}")
+        api_games = await search_games_by_name(query, access_token)
+        matched_games.extend(api_games)
+        
+        # Также попробовать получить все игры с дропами
+        if not matched_games:
+            all_drop_games = await get_all_games_with_drops(access_token)
+            for game in all_drop_games:
+                if query_lower in game["name"].lower():
+                    matched_games.append(game)
+    
+    logger.info(f"Найдено {len(matched_games)} игр по запросу: {query}")
     return matched_games
 
 async def claim_drop(access_token: str, drop_instance_id: str) -> bool:
