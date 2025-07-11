@@ -560,6 +560,7 @@ const App = () => {
   const [monitoring, setMonitoring] = useState({ active: false });
   const [isAddAccountModalOpen, setIsAddAccountModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isGameSelectionModalOpen, setIsGameSelectionModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [websocket, setWebsocket] = useState(null);
   const [notifications, setNotifications] = useState([]);
