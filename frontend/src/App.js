@@ -377,6 +377,126 @@ const SettingsModal = ({ isOpen, onClose, settings, onSettingsUpdate }) => {
   );
 };
 
+// Компонент отображения прогресса дропов
+const DropsProgressPanel = ({ isOpen, onClose }) => {
+  const [dropsProgress, setDropsProgress] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadDropsProgress();
+      // Обновлять прогресс каждые 30 секунд
+      const interval = setInterval(loadDropsProgress, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isOpen]);
+
+  const loadDropsProgress = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(`${API}/drops/progress`);
+      setDropsProgress(response.data);
+    } catch (err) {
+      console.error('Ошибка загрузки прогресса дропов:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatTime = (minutes) => {
+    if (minutes < 60) return `${minutes} мин`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}ч ${mins}мин`;
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-800">Прогресс фарма дропов</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 text-2xl"
+          >
+            ×
+          </button>
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-8">
+            <p>Загрузка...</p>
+          </div>
+        ) : (
+          <div className="overflow-y-auto max-h-[70vh]">
+            {dropsProgress.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Нет активных дропов для мониторинга</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {dropsProgress.map((drop, index) => (
+                  <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg text-gray-900">{drop.drop_name}</h3>
+                        <p className="text-sm text-gray-600">{drop.campaign_name}</p>
+                        <p className="text-sm text-blue-600 font-medium">{drop.game_name}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500">
+                          {drop.streamer_name ? `Стример: ${drop.streamer_name}` : 'Нет стримера'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {formatTime(drop.current_minutes)} / {formatTime(drop.required_minutes)}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-2">
+                      <div className="flex justify-between items-center text-sm mb-1">
+                        <span>Прогресс:</span>
+                        <span className="font-medium">
+                          {Math.round((drop.current_minutes / drop.required_minutes) * 100)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            drop.is_claimed ? 'bg-green-500' : 'bg-blue-500'
+                          }`}
+                          style={{ 
+                            width: `${Math.min(100, (drop.current_minutes / drop.required_minutes) * 100)}%` 
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center text-sm">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        drop.is_claimed 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {drop.is_claimed ? 'Получен' : 'В процессе'}
+                      </span>
+                      <span className="text-gray-400">
+                        Обновлен: {new Date(drop.last_updated).toLocaleString('ru-RU')}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Компонент выбора игр
 const GameSelectionModal = ({ isOpen, onClose, settings, onSettingsUpdate }) => {
   const [games, setGames] = useState([]);
@@ -388,7 +508,8 @@ const GameSelectionModal = ({ isOpen, onClose, settings, onSettingsUpdate }) => 
   useEffect(() => {
     if (isOpen) {
       loadGames();
-      setSelectedGames(settings.monitored_games || []);
+      const monitoredGames = settings?.monitored_games || [];
+      setSelectedGames([...monitoredGames]); // Создать копию массива
     }
   }, [isOpen, settings]);
 
