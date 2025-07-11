@@ -183,28 +183,34 @@
   test_priority: "high_first"
 
   - task: "Автоматический выбор стримеров для игр"
-    implemented: false
-    working: false
+    implemented: true
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Начата реализация автоматического выбора стримеров для выбранных игр с дропами"
+      - working: true
+        agent: "testing"
+        comment: "Протестирована новая функциональность автоматического выбора стримеров. Реализованы новые API endpoints: GET /api/games/{game_id}/streamers для получения стримеров игры, функция get_streamers_for_game() корректно получает активные стримы для игры и сортирует по количеству зрителей. Система мониторинга обновлена для автоматического выбора стримеров при изменении игры. Добавлены новые поля current_stream и current_game в модель TwitchAccount. WebSocket уведомления streamer_selected реализованы. Все тесты пройдены успешно."
 
   - task: "Отображение прогресса фарма дропов"
-    implemented: false
-    working: false
-    file: "frontend/src/App.js"
+    implemented: true
+    working: true
+    file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Начата реализация отображения текущего прогресса фарма дропов в реальном времени"
+      - working: true
+        agent: "testing"
+        comment: "Протестирована система отслеживания прогресса дропов. Реализованы новые API endpoints: GET /api/drops/progress для получения прогресса всех дропов, GET /api/drops/progress/{account_id} для получения прогресса конкретного аккаунта. Модель DropProgress корректно сохраняет информацию о прогрессе дропов в базе данных. WebSocket уведомления drop_progress реализованы для отправки обновлений в реальном времени. Исправлена проблема с конфликтом маршрутов (route ordering issue). Все endpoints работают корректно."
 
 ## agent_communication:
   - agent: "main"
