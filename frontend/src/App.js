@@ -678,7 +678,11 @@ const App = () => {
       <AddAccountModal
         isOpen={isAddAccountModalOpen}
         onClose={() => setIsAddAccountModalOpen(false)}
-        onAccountAdded={loadData}
+        onAccountAdded={async () => {
+          console.log('Account added callback triggered');
+          await loadData();
+          addNotification('✅ Аккаунт успешно добавлен!');
+        }}
       />
       
       <SettingsModal
