@@ -994,7 +994,31 @@ async def get_account_drops(account_id: str):
 @api_router.get("/games", response_model=List[GameInfo])
 async def get_games():
     """Получить популярные игры с дропами"""
+    logger.info("API: Получение списка популярных игр с дропами")
+    
+    # Получить статический список
     games = await get_games_with_drops()
+    
+    # Попробовать получить игры с активными дропами из API
+    account = await db.accounts.find_one({"is_authenticated": True})
+    if account:
+        access_token = account.get("access_token")
+        logger.info(f"API: Попытка получить актуальные игры с дропами для аккаунта {account.get('username')}")
+        
+        try:
+            active_drop_games = await get_all_games_with_drops(access_token)
+            
+            # Объединить списки, избегая дубликатов
+            seen_ids = {game['id'] for game in games}
+            for game in active_drop_games:
+                if game['id'] not in seen_ids:
+                    games.append(game)
+                    seen_ids.add(game['id'])
+            
+            logger.info(f"API: Общий список содержит {len(games)} игр")
+        except Exception as e:
+            logger.error(f"API: Ошибка получения активных дропов: {str(e)}")
+    
     return games
 
 @api_router.get("/games/search")
