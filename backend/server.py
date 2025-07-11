@@ -434,7 +434,7 @@ async def update_settings(settings_update: SettingsUpdate):
 # Account management endpoints
 @api_router.get("/accounts", response_model=List[TwitchAccount])
 async def get_accounts():
-    accounts = await db.accounts.find().to_list(1000)
+    accounts = await db.accounts.find({}, {"_id": 0}).to_list(1000)
     return [TwitchAccount(**account) for account in accounts]
 
 @api_router.post("/accounts/device-code", response_model=AuthDeviceCode)
