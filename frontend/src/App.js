@@ -218,6 +218,7 @@ function App() {
   const AddAccountModal = () => {
     const [verificationData, setVerificationData] = useState(null);
     const [isVerifying, setIsVerifying] = useState(false);
+    const [isLoadingVerification, setIsLoadingVerification] = useState(false);
 
     useEffect(() => {
       if (showAddAccountModal) {
