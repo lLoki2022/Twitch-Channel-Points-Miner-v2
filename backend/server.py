@@ -296,61 +296,119 @@ async def get_drops_campaigns(access_token: str) -> List[Dict]:
 
 async def get_games_with_drops():
     """Получить популярные игры с дропами"""
-    headers = {
-        "Client-Id": TWITCH_CLIENT_ID,
-        "Authorization": f"Bearer {TWITCH_CLIENT_ID}"  # Используем client_id как токен для публичных запросов
-    }
+    # Известные игры с дропами (статический список)
+    popular_games = [
+        {
+            "id": "29595",
+            "name": "Dota 2",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/29595_IGDB-144x192.jpg",
+            "has_drops": True
+        },
+        {
+            "id": "21779",
+            "name": "League of Legends",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/21779_IGDB-144x192.jpg",
+            "has_drops": True
+        },
+        {
+            "id": "27471",
+            "name": "Minecraft",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/27471_IGDB-144x192.jpg",
+            "has_drops": True
+        },
+        {
+            "id": "32982",
+            "name": "Grand Theft Auto V",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/32982_IGDB-144x192.jpg",
+            "has_drops": True
+        },
+        {
+            "id": "512710",
+            "name": "Call of Duty: Warzone",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/512710-144x192.jpg",
+            "has_drops": True
+        },
+        {
+            "id": "33214",
+            "name": "Fortnite",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/33214_IGDB-144x192.jpg",
+            "has_drops": True
+        },
+        {
+            "id": "138585",
+            "name": "Hearthstone",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/138585_IGDB-144x192.jpg",
+            "has_drops": True
+        },
+        {
+            "id": "490100",
+            "name": "Rust",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/490100-144x192.jpg",
+            "has_drops": True
+        },
+        {
+            "id": "511224",
+            "name": "Apex Legends",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/511224-144x192.jpg",
+            "has_drops": True
+        },
+        {
+            "id": "460630",
+            "name": "Tom Clancy's Rainbow Six Siege",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/460630-144x192.jpg",
+            "has_drops": True
+        }
+    ]
     
-    # Получить топ игры
-    try:
-        response = requests.get(f"{TWITCH_API_BASE}/games/top?first=50", headers=headers)
-        if response.status_code == 200:
-            data = response.json()
-            games = data.get("data", [])
-            
-            # Преобразовать в наш формат
-            result = []
-            for game in games:
-                result.append({
-                    "id": game["id"],
-                    "name": game["name"],
-                    "box_art_url": game["box_art_url"].replace("{width}", "144").replace("{height}", "192"),
-                    "has_drops": True  # В реальности нужно проверять наличие дропов
-                })
-            
-            return result
-        return []
-    except Exception as e:
-        logger.error(f"Ошибка получения игр: {str(e)}")
-        return []
+    return popular_games
 
 async def search_games(query: str):
     """Поиск игр по названию"""
-    headers = {
-        "Client-Id": TWITCH_CLIENT_ID,
-        "Authorization": f"Bearer {TWITCH_CLIENT_ID}"
-    }
+    # Простой поиск по названию в статическом списке
+    all_games = await get_games_with_drops()
     
-    try:
-        response = requests.get(f"{TWITCH_API_BASE}/games?name={query}", headers=headers)
-        if response.status_code == 200:
-            data = response.json()
-            games = data.get("data", [])
-            
-            result = []
-            for game in games:
-                result.append({
-                    "id": game["id"],
-                    "name": game["name"],
-                    "box_art_url": game["box_art_url"].replace("{width}", "144").replace("{height}", "192"),
-                    "has_drops": True
-                })
-            
-            return result
-        return []
-    except Exception as e:
-        logger.error(f"Ошибка поиска игр: {str(e)}")
-        return []
+    # Расширенный список для поиска
+    extended_games = all_games + [
+        {
+            "id": "506442",
+            "name": "World of Warcraft",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/506442-144x192.jpg",
+            "has_drops": True
+        },
+        {
+            "id": "18122",
+            "name": "World of Tanks",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/18122_IGDB-144x192.jpg",
+            "has_drops": True
+        },
+        {
+            "id": "30921",
+            "name": "Rocket League",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/30921_IGDB-144x192.jpg",
+            "has_drops": True
+        },
+        {
+            "id": "493057",
+            "name": "PUBG: BATTLEGROUNDS",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/493057-144x192.jpg",
+            "has_drops": True
+        },
+        {
+            "id": "516575",
+            "name": "VALORANT",
+            "box_art_url": "https://static-cdn.jtvnw.net/ttv-boxart/516575-144x192.jpg",
+            "has_drops": True
+        }
+    ]
+    
+    query_lower = query.lower()
+    matched_games = []
+    
+    for game in extended_games:
+        if query_lower in game["name"].lower():
+            matched_games.append(game)
+    
+    return matched_games
 
 async def claim_drop(access_token: str, drop_instance_id: str) -> bool:
     """Получить дроп"""
