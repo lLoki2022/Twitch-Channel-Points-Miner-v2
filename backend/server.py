@@ -621,16 +621,21 @@ async def get_statistics():
     """Получить общую статистику"""
     total_accounts = await db.accounts.count_documents({})
     active_accounts = await db.accounts.count_documents({"status": "active"})
-    total_drops_claimed = await db.accounts.aggregate([
-        {"$group": {"_id": None, "total": {"$sum": "$drops_claimed"}}}
-    ]).to_list(1)
+    
+    # Безопасно получаем общее количество дропов
+    total_drops_claimed = 0
+    if total_accounts > 0:
+        total_drops_result = await db.accounts.aggregate([
+            {"$group": {"_id": None, "total": {"$sum": "$drops_claimed"}}}
+        ]).to_list(1)
+        total_drops_claimed = total_drops_result[0]["total"] if total_drops_result else 0
     
     settings = await db.settings.find_one({}) or {}
     
     return {
         "total_accounts": total_accounts,
         "active_accounts": active_accounts,
-        "total_drops_claimed": total_drops_claimed[0]["total"] if total_drops_claimed else 0,
+        "total_drops_claimed": total_drops_claimed,
         "monitoring_active": monitoring_active,
         "settings": settings
     }
