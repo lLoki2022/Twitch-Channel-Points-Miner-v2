@@ -630,7 +630,9 @@ async def get_statistics():
         ]).to_list(1)
         total_drops_claimed = total_drops_result[0]["total"] if total_drops_result else 0
     
-    settings = await db.settings.find_one({}) or {}
+    # Получаем настройки без MongoDB ObjectId
+    settings_doc = await db.settings.find_one({}, {"_id": 0})
+    settings = settings_doc or {}
     
     return {
         "total_accounts": total_accounts,
