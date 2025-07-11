@@ -289,7 +289,16 @@ function App() {
         <div className="modal-content">
           <h3>Добавление нового аккаунта</h3>
           
-          {verificationData && (
+          {isLoadingVerification && (
+            <div style={{textAlign: 'center', padding: '20px'}}>
+              <div className="loading">
+                <div className="spinner"></div>
+                <span style={{marginLeft: '10px'}}>Получение кода активации...</span>
+              </div>
+            </div>
+          )}
+          
+          {!isLoadingVerification && verificationData && (
             <div className="verification-code">
               <h4>Код активации:</h4>
               <div className="code" style={{fontSize: '24px', fontWeight: 'bold', color: '#9146ff', padding: '10px', border: '2px solid #9146ff', borderRadius: '8px', textAlign: 'center', marginBottom: '15px'}}>
