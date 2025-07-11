@@ -112,17 +112,17 @@
   - Упростить проект до 1-3 файлов (адаптировано для веб-версии)
 
 ## backend:
-  - task: "Создать основной Python скрипт для Twitch Drops Miner"
+  - task: "Создать FastAPI backend для Twitch Drops Miner"
     implemented: true
     working: true
-    file: "twitch_drops_miner.py"
+    file: "backend/server.py"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
       - working: true
         agent: "main"
-        comment: "Создан основной скрипт с авторизацией через twitch.tv/activate, поддержкой множественных аккаунтов, русским интерфейсом и мониторингом дропов"
+        comment: "Создан полноценный FastAPI backend с авторизацией через twitch.tv/activate, управлением аккаунтами, мониторингом дропов, WebSocket для реального времени, настройками и статистикой"
       - working: true
         agent: "testing"
         comment: "Протестирован полный функционал: запуск приложения без ошибок, отображение консольного меню на русском языке, автоматическое создание config.json, корректная структура меню (управление аккаунтами, мониторинг, настройки, статистика), загрузка и сохранение настроек. Все 8 тестов пройдены успешно (100% успешность). Скрипт корректно запускается и отображает главное меню на русском языке."
