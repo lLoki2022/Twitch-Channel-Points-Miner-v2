@@ -1,440 +1,422 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Backend Test Suite for Twitch Drops Miner
-Tests basic functionality without requiring real API calls or user interaction
+Backend API Test Suite for Twitch Drops Miner
+Tests FastAPI endpoints to ensure they are working correctly
 """
 
 import sys
 import os
 import json
-import tempfile
-import shutil
-from unittest.mock import patch, MagicMock
-import importlib.util
+import requests
+import time
+from typing import Dict, Any
 
 # Add the app directory to Python path
 sys.path.insert(0, '/app')
 
-class TwitchDropsMinerTest:
-    """Test suite for Twitch Drops Miner functionality"""
+class TwitchDropsMinerAPITest:
+    """Test suite for Twitch Drops Miner FastAPI endpoints"""
     
     def __init__(self):
         self.test_results = []
-        self.temp_dir = None
-        self.original_config_file = None
+        self.base_url = self.get_backend_url()
+        self.session = requests.Session()
+        self.session.timeout = 10
         
-    def setup_test_environment(self):
-        """Setup isolated test environment"""
-        print("🔧 Настройка тестовой среды...")
-        
-        # Create temporary directory for test config
-        self.temp_dir = tempfile.mkdtemp()
-        self.test_config_path = os.path.join(self.temp_dir, "test_config.json")
-        
-        print(f"📁 Временная директория: {self.temp_dir}")
-        return True
+    def get_backend_url(self) -> str:
+        """Get backend URL from frontend .env file"""
+        try:
+            with open('/app/frontend/.env', 'r') as f:
+                for line in f:
+                    if line.startswith('REACT_APP_BACKEND_URL='):
+                        url = line.split('=', 1)[1].strip()
+                        return f"{url}/api"
+            return "http://localhost:8001/api"
+        except Exception as e:
+            print(f"⚠️ Не удалось прочитать URL из .env: {e}")
+            return "http://localhost:8001/api"
     
-    def cleanup_test_environment(self):
-        """Cleanup test environment"""
-        if self.temp_dir and os.path.exists(self.temp_dir):
-            shutil.rmtree(self.temp_dir)
-            print("🧹 Тестовая среда очищена")
+    def make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+        """Make HTTP request with error handling"""
+        url = f"{self.base_url}{endpoint}"
+        try:
+            response = self.session.request(method, url, **kwargs)
+            return {
+                "success": True,
+                "status_code": response.status_code,
+                "data": response.json() if response.headers.get('content-type', '').startswith('application/json') else response.text,
+                "headers": dict(response.headers)
+            }
+        except requests.exceptions.RequestException as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "status_code": None,
+                "data": None
+            }
+        except json.JSONDecodeError as e:
+            return {
+                "success": True,
+                "status_code": response.status_code,
+                "data": response.text,
+                "json_error": str(e)
+            }
     
-    def test_script_import(self):
-        """Test 1: Проверка импорта скрипта без ошибок"""
-        print("\n🧪 Тест 1: Импорт скрипта...")
+    def test_api_root(self):
+        """Test 1: Проверка корневого API endpoint"""
+        print("\n🧪 Тест 1: GET /api/ - корневой endpoint...")
         
         try:
-            # Import the main script
-            spec = importlib.util.spec_from_file_location("twitch_drops_miner", "/app/twitch_drops_miner.py")
-            twitch_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(twitch_module)
+            result = self.make_request("GET", "/")
             
-            # Check if main classes exist
-            assert hasattr(twitch_module, 'TwitchDropsMiner'), "Класс TwitchDropsMiner не найден"
-            assert hasattr(twitch_module, 'main'), "Функция main не найдена"
+            if not result["success"]:
+                self.test_results.append(("❌", "GET /api/", f"Ошибка соединения: {result['error']}"))
+                return False
             
-            self.test_results.append(("✅", "Импорт скрипта", "Успешно"))
+            if result["status_code"] != 200:
+                self.test_results.append(("❌", "GET /api/", f"Неверный статус код: {result['status_code']}"))
+                return False
+            
+            data = result["data"]
+            if not isinstance(data, dict) or "message" not in data:
+                self.test_results.append(("❌", "GET /api/", f"Неверный формат ответа: {data}"))
+                return False
+            
+            self.test_results.append(("✅", "GET /api/", f"Успешно: {data['message']}"))
             return True
             
         except Exception as e:
-            self.test_results.append(("❌", "Импорт скрипта", f"Ошибка: {str(e)}"))
+            self.test_results.append(("❌", "GET /api/", f"Ошибка: {str(e)}"))
             return False
     
-    def test_class_initialization(self):
-        """Test 2: Проверка инициализации класса"""
-        print("\n🧪 Тест 2: Инициализация класса...")
+    def test_accounts_endpoint(self):
+        """Test 2: Проверка endpoint аккаунтов"""
+        print("\n🧪 Тест 2: GET /api/accounts - список аккаунтов...")
         
         try:
-            # Import and initialize with test config
-            spec = importlib.util.spec_from_file_location("twitch_drops_miner", "/app/twitch_drops_miner.py")
-            twitch_module = importlib.util.module_from_spec(spec)
+            result = self.make_request("GET", "/accounts")
             
-            # Mock print to capture output
-            with patch('builtins.print') as mock_print:
-                spec.loader.exec_module(twitch_module)
-                miner = twitch_module.TwitchDropsMiner(self.test_config_path)
+            if not result["success"]:
+                self.test_results.append(("❌", "GET /api/accounts", f"Ошибка соединения: {result['error']}"))
+                return False
             
-            # Check initialization
-            assert hasattr(miner, 'config'), "Атрибут config не найден"
-            assert hasattr(miner, 'accounts'), "Атрибут accounts не найден"
-            assert hasattr(miner, 'running'), "Атрибут running не найден"
-            assert hasattr(miner, 'client_id'), "Атрибут client_id не найден"
+            if result["status_code"] != 200:
+                self.test_results.append(("❌", "GET /api/accounts", f"Неверный статус код: {result['status_code']}"))
+                return False
             
-            # Check if initialization messages were printed
-            print_calls = [str(call) for call in mock_print.call_args_list]
-            startup_messages = [call for call in print_calls if "Twitch Drops Miner" in call]
-            assert len(startup_messages) > 0, "Сообщения запуска не найдены"
+            data = result["data"]
+            if not isinstance(data, list):
+                self.test_results.append(("❌", "GET /api/accounts", f"Ответ должен быть массивом: {type(data)}"))
+                return False
             
-            self.test_results.append(("✅", "Инициализация класса", "Успешно"))
+            # Should return empty array initially
+            if len(data) == 0:
+                self.test_results.append(("✅", "GET /api/accounts", "Успешно: пустой массив аккаунтов"))
+            else:
+                self.test_results.append(("✅", "GET /api/accounts", f"Успешно: {len(data)} аккаунтов"))
+            
             return True
             
         except Exception as e:
-            self.test_results.append(("❌", "Инициализация класса", f"Ошибка: {str(e)}"))
+            self.test_results.append(("❌", "GET /api/accounts", f"Ошибка: {str(e)}"))
             return False
     
-    def test_config_creation(self):
-        """Test 3: Проверка создания конфигурации"""
-        print("\n🧪 Тест 3: Создание конфигурации...")
+    def test_settings_endpoint(self):
+        """Test 3: Проверка endpoint настроек"""
+        print("\n🧪 Тест 3: GET /api/settings - настройки...")
         
         try:
-            spec = importlib.util.spec_from_file_location("twitch_drops_miner", "/app/twitch_drops_miner.py")
-            twitch_module = importlib.util.module_from_spec(spec)
+            result = self.make_request("GET", "/settings")
             
-            with patch('builtins.print'):
-                spec.loader.exec_module(twitch_module)
-                miner = twitch_module.TwitchDropsMiner(self.test_config_path)
+            if not result["success"]:
+                self.test_results.append(("❌", "GET /api/settings", f"Ошибка соединения: {result['error']}"))
+                return False
             
-            # Check if config file was created
-            assert os.path.exists(self.test_config_path), "Файл конфигурации не создан"
+            if result["status_code"] != 200:
+                self.test_results.append(("❌", "GET /api/settings", f"Неверный статус код: {result['status_code']}"))
+                return False
             
-            # Check config content
-            with open(self.test_config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
+            data = result["data"]
+            if not isinstance(data, dict):
+                self.test_results.append(("❌", "GET /api/settings", f"Ответ должен быть объектом: {type(data)}"))
+                return False
             
-            # Validate config structure
-            assert "accounts" in config, "Секция accounts отсутствует"
-            assert "settings" in config, "Секция settings отсутствует"
-            assert isinstance(config["accounts"], list), "accounts должен быть списком"
-            assert isinstance(config["settings"], dict), "settings должен быть словарем"
+            # Check required fields
+            required_fields = ["id", "check_interval", "auto_claim_drops", "watch_time_minutes", "language"]
+            missing_fields = [field for field in required_fields if field not in data]
             
-            # Check default settings
-            settings = config["settings"]
-            assert "check_interval" in settings, "check_interval отсутствует"
-            assert "auto_claim_drops" in settings, "auto_claim_drops отсутствует"
-            assert "watch_time_minutes" in settings, "watch_time_minutes отсутствует"
-            assert "language" in settings, "language отсутствует"
-            assert settings["language"] == "ru", "Язык должен быть русским"
+            if missing_fields:
+                self.test_results.append(("❌", "GET /api/settings", f"Отсутствуют поля: {missing_fields}"))
+                return False
             
-            self.test_results.append(("✅", "Создание конфигурации", "Успешно"))
+            # Check language is Russian
+            if data.get("language") != "ru":
+                self.test_results.append(("⚠️", "GET /api/settings", f"Язык не русский: {data.get('language')}"))
+            
+            self.test_results.append(("✅", "GET /api/settings", "Успешно: настройки получены"))
             return True
             
         except Exception as e:
-            self.test_results.append(("❌", "Создание конфигурации", f"Ошибка: {str(e)}"))
+            self.test_results.append(("❌", "GET /api/settings", f"Ошибка: {str(e)}"))
             return False
     
-    def test_menu_methods(self):
-        """Test 4: Проверка методов отображения меню"""
-        print("\n🧪 Тест 4: Методы отображения меню...")
+    def test_statistics_endpoint(self):
+        """Test 4: Проверка endpoint статистики"""
+        print("\n🧪 Тест 4: GET /api/statistics - статистика...")
         
         try:
-            spec = importlib.util.spec_from_file_location("twitch_drops_miner", "/app/twitch_drops_miner.py")
-            twitch_module = importlib.util.module_from_spec(spec)
+            result = self.make_request("GET", "/statistics")
             
-            with patch('builtins.print'):
-                spec.loader.exec_module(twitch_module)
-                miner = twitch_module.TwitchDropsMiner(self.test_config_path)
+            if not result["success"]:
+                self.test_results.append(("❌", "GET /api/statistics", f"Ошибка соединения: {result['error']}"))
+                return False
             
-            # Test main menu
-            with patch('builtins.print') as mock_print:
-                miner.show_menu()
+            if result["status_code"] != 200:
+                self.test_results.append(("❌", "GET /api/statistics", f"Неверный статус код: {result['status_code']}"))
+                return False
             
-            menu_output = [str(call) for call in mock_print.call_args_list]
-            menu_text = ' '.join(menu_output)
+            data = result["data"]
+            if not isinstance(data, dict):
+                self.test_results.append(("❌", "GET /api/statistics", f"Ответ должен быть объектом: {type(data)}"))
+                return False
             
-            # Check for Russian menu items
-            assert "ГЛАВНОЕ МЕНЮ" in menu_text, "Главное меню не найдено"
-            assert "Управление аккаунтами" in menu_text, "Пункт управления аккаунтами не найден"
-            assert "Запустить мониторинг" in menu_text, "Пункт мониторинга не найден"
-            assert "Настройки" in menu_text, "Пункт настроек не найден"
-            assert "Статистика" in menu_text, "Пункт статистики не найден"
-            assert "Выход" in menu_text, "Пункт выхода не найден"
+            # Check required fields
+            required_fields = ["total_accounts", "active_accounts", "total_drops_claimed", "monitoring_active"]
+            missing_fields = [field for field in required_fields if field not in data]
             
-            # Test accounts menu
-            with patch('builtins.print') as mock_print:
-                miner.show_accounts_menu()
+            if missing_fields:
+                self.test_results.append(("❌", "GET /api/statistics", f"Отсутствуют поля: {missing_fields}"))
+                return False
             
-            accounts_output = [str(call) for call in mock_print.call_args_list]
-            accounts_text = ' '.join(accounts_output)
+            # Validate data types
+            if not isinstance(data["total_accounts"], int):
+                self.test_results.append(("❌", "GET /api/statistics", f"total_accounts должно быть числом: {type(data['total_accounts'])}"))
+                return False
             
-            assert "УПРАВЛЕНИЕ АККАУНТАМИ" in accounts_text, "Меню управления аккаунтами не найдено"
-            assert "Добавить аккаунт" in accounts_text, "Пункт добавления аккаунта не найден"
-            assert "Удалить аккаунт" in accounts_text, "Пункт удаления аккаунта не найден"
+            if not isinstance(data["monitoring_active"], bool):
+                self.test_results.append(("❌", "GET /api/statistics", f"monitoring_active должно быть boolean: {type(data['monitoring_active'])}"))
+                return False
             
-            # Test settings menu
-            with patch('builtins.print') as mock_print:
-                miner.show_settings_menu()
-            
-            settings_output = [str(call) for call in mock_print.call_args_list]
-            settings_text = ' '.join(settings_output)
-            
-            assert "НАСТРОЙКИ" in settings_text, "Меню настроек не найдено"
-            assert "Интервал проверки" in settings_text, "Настройка интервала не найдена"
-            assert "Автоматическое получение" in settings_text, "Настройка автополучения не найдена"
-            
-            self.test_results.append(("✅", "Методы отображения меню", "Успешно"))
+            self.test_results.append(("✅", "GET /api/statistics", f"Успешно: {data['total_accounts']} аккаунтов, {data['total_drops_claimed']} дропов"))
             return True
             
         except Exception as e:
-            self.test_results.append(("❌", "Методы отображения меню", f"Ошибка: {str(e)}"))
+            self.test_results.append(("❌", "GET /api/statistics", f"Ошибка: {str(e)}"))
             return False
     
-    def test_config_operations(self):
-        """Test 5: Проверка операций с конфигурацией"""
-        print("\n🧪 Тест 5: Операции с конфигурацией...")
+    def test_monitoring_status_endpoint(self):
+        """Test 5: Проверка endpoint статуса мониторинга"""
+        print("\n🧪 Тест 5: GET /api/monitoring/status - статус мониторинга...")
         
         try:
-            spec = importlib.util.spec_from_file_location("twitch_drops_miner", "/app/twitch_drops_miner.py")
-            twitch_module = importlib.util.module_from_spec(spec)
+            result = self.make_request("GET", "/monitoring/status")
             
-            with patch('builtins.print'):
-                spec.loader.exec_module(twitch_module)
-                miner = twitch_module.TwitchDropsMiner(self.test_config_path)
+            if not result["success"]:
+                self.test_results.append(("❌", "GET /api/monitoring/status", f"Ошибка соединения: {result['error']}"))
+                return False
             
-            # Test config loading
-            original_config = miner.config.copy()
+            if result["status_code"] != 200:
+                self.test_results.append(("❌", "GET /api/monitoring/status", f"Неверный статус код: {result['status_code']}"))
+                return False
             
-            # Test config modification
-            miner.config["settings"]["check_interval"] = 120
-            miner.config["settings"]["auto_claim_drops"] = False
+            data = result["data"]
+            if not isinstance(data, dict):
+                self.test_results.append(("❌", "GET /api/monitoring/status", f"Ответ должен быть объектом: {type(data)}"))
+                return False
             
-            # Test config saving
-            miner.save_config()
+            # Check required fields
+            required_fields = ["active", "accounts_count"]
+            missing_fields = [field for field in required_fields if field not in data]
             
-            # Verify changes were saved
-            with open(self.test_config_path, 'r', encoding='utf-8') as f:
-                saved_config = json.load(f)
+            if missing_fields:
+                self.test_results.append(("❌", "GET /api/monitoring/status", f"Отсутствуют поля: {missing_fields}"))
+                return False
             
-            assert saved_config["settings"]["check_interval"] == 120, "Изменение интервала не сохранено"
-            assert saved_config["settings"]["auto_claim_drops"] == False, "Изменение автополучения не сохранено"
+            # Validate data types
+            if not isinstance(data["active"], bool):
+                self.test_results.append(("❌", "GET /api/monitoring/status", f"active должно быть boolean: {type(data['active'])}"))
+                return False
             
-            # Test config reloading
-            new_miner = twitch_module.TwitchDropsMiner(self.test_config_path)
-            assert new_miner.config["settings"]["check_interval"] == 120, "Конфигурация не загружена корректно"
+            if not isinstance(data["accounts_count"], int):
+                self.test_results.append(("❌", "GET /api/monitoring/status", f"accounts_count должно быть числом: {type(data['accounts_count'])}"))
+                return False
             
-            self.test_results.append(("✅", "Операции с конфигурацией", "Успешно"))
+            self.test_results.append(("✅", "GET /api/monitoring/status", f"Успешно: активен={data['active']}, аккаунтов={data['accounts_count']}"))
             return True
             
         except Exception as e:
-            self.test_results.append(("❌", "Операции с конфигурацией", f"Ошибка: {str(e)}"))
+            self.test_results.append(("❌", "GET /api/monitoring/status", f"Ошибка: {str(e)}"))
             return False
     
-    def test_account_management_methods(self):
-        """Test 6: Проверка методов управления аккаунтами"""
-        print("\n🧪 Тест 6: Методы управления аккаунтами...")
+    def test_device_code_endpoint(self):
+        """Test 6: Проверка endpoint получения device code"""
+        print("\n🧪 Тест 6: POST /api/accounts/device-code - получение device code...")
         
         try:
-            spec = importlib.util.spec_from_file_location("twitch_drops_miner", "/app/twitch_drops_miner.py")
-            twitch_module = importlib.util.module_from_spec(spec)
+            result = self.make_request("POST", "/accounts/device-code")
             
-            with patch('builtins.print'):
-                spec.loader.exec_module(twitch_module)
-                miner = twitch_module.TwitchDropsMiner(self.test_config_path)
+            if not result["success"]:
+                self.test_results.append(("❌", "POST /api/accounts/device-code", f"Ошибка соединения: {result['error']}"))
+                return False
             
-            # Test list_accounts with empty list
-            with patch('builtins.print') as mock_print:
-                miner.list_accounts()
+            if result["status_code"] != 200:
+                self.test_results.append(("❌", "POST /api/accounts/device-code", f"Неверный статус код: {result['status_code']}"))
+                return False
             
-            output = [str(call) for call in mock_print.call_args_list]
-            output_text = ' '.join(output)
-            assert "Нет добавленных аккаунтов" in output_text, "Сообщение о пустом списке не найдено"
+            data = result["data"]
+            if not isinstance(data, dict):
+                self.test_results.append(("❌", "POST /api/accounts/device-code", f"Ответ должен быть объектом: {type(data)}"))
+                return False
             
-            # Test remove_account with non-existent account
-            with patch('builtins.print') as mock_print:
-                result = miner.remove_account("nonexistent")
+            # Check required fields for device code response
+            required_fields = ["device_code", "user_code", "verification_uri", "expires_in", "interval"]
+            missing_fields = [field for field in required_fields if field not in data]
             
-            assert result == False, "Удаление несуществующего аккаунта должно возвращать False"
+            if missing_fields:
+                self.test_results.append(("❌", "POST /api/accounts/device-code", f"Отсутствуют поля: {missing_fields}"))
+                return False
             
-            # Test statistics display - mock input to avoid EOF error
-            with patch('builtins.print') as mock_print, patch('builtins.input', return_value=''):
-                miner.show_statistics()
+            # Validate field types and values
+            if not isinstance(data["expires_in"], int) or data["expires_in"] <= 0:
+                self.test_results.append(("❌", "POST /api/accounts/device-code", f"expires_in должно быть положительным числом: {data['expires_in']}"))
+                return False
             
-            stats_output = [str(call) for call in mock_print.call_args_list]
-            stats_text = ' '.join(stats_output)
+            if not isinstance(data["interval"], int) or data["interval"] <= 0:
+                self.test_results.append(("❌", "POST /api/accounts/device-code", f"interval должно быть положительным числом: {data['interval']}"))
+                return False
             
-            assert "СТАТИСТИКА" in stats_text, "Заголовок статистики не найден"
-            assert "Всего аккаунтов: 0" in stats_text, "Счетчик аккаунтов не найден"
+            if not data["verification_uri"].startswith("https://"):
+                self.test_results.append(("❌", "POST /api/accounts/device-code", f"verification_uri должен быть HTTPS URL: {data['verification_uri']}"))
+                return False
             
-            self.test_results.append(("✅", "Методы управления аккаунтами", "Успешно"))
+            self.test_results.append(("✅", "POST /api/accounts/device-code", f"Успешно: код={data['user_code']}, URI={data['verification_uri']}"))
             return True
             
         except Exception as e:
-            self.test_results.append(("❌", "Методы управления аккаунтами", f"Ошибка: {str(e)}"))
+            self.test_results.append(("❌", "POST /api/accounts/device-code", f"Ошибка: {str(e)}"))
             return False
     
-    def test_error_handling(self):
-        """Test 7: Проверка обработки ошибок"""
-        print("\n🧪 Тест 7: Обработка ошибок...")
+    def test_objectid_serialization(self):
+        """Test 7: Проверка отсутствия ошибок сериализации ObjectId"""
+        print("\n🧪 Тест 7: Проверка сериализации ObjectId во всех endpoints...")
         
         try:
-            spec = importlib.util.spec_from_file_location("twitch_drops_miner", "/app/twitch_drops_miner.py")
-            twitch_module = importlib.util.module_from_spec(spec)
-            
-            with patch('builtins.print'):
-                spec.loader.exec_module(twitch_module)
-            
-            # Test loading non-existent config
-            non_existent_path = os.path.join(self.temp_dir, "non_existent.json")
-            
-            with patch('builtins.print') as mock_print:
-                miner = twitch_module.TwitchDropsMiner(non_existent_path)
-            
-            # Should create default config
-            assert os.path.exists(non_existent_path), "Конфигурация по умолчанию не создана"
-            
-            # Test invalid JSON handling by creating corrupted config
-            corrupted_path = os.path.join(self.temp_dir, "corrupted.json")
-            with open(corrupted_path, 'w') as f:
-                f.write("invalid json content")
-            
-            # This should handle the error gracefully
-            try:
-                with patch('builtins.print'):
-                    miner = twitch_module.TwitchDropsMiner(corrupted_path)
-                # If we get here, it handled the error
-                error_handled = True
-            except json.JSONDecodeError:
-                # If JSON error propagates, that's also acceptable
-                error_handled = True
-            except Exception:
-                error_handled = False
-            
-            assert error_handled, "Ошибка JSON не обработана корректно"
-            
-            self.test_results.append(("✅", "Обработка ошибок", "Успешно"))
-            return True
-            
-        except Exception as e:
-            self.test_results.append(("❌", "Обработка ошибок", f"Ошибка: {str(e)}"))
-            return False
-    
-    def test_russian_interface(self):
-        """Test 8: Проверка русского интерфейса"""
-        print("\n🧪 Тест 8: Русский интерфейс...")
-        
-        try:
-            spec = importlib.util.spec_from_file_location("twitch_drops_miner", "/app/twitch_drops_miner.py")
-            twitch_module = importlib.util.module_from_spec(spec)
-            
-            with patch('builtins.print'):
-                spec.loader.exec_module(twitch_module)
-                miner = twitch_module.TwitchDropsMiner(self.test_config_path)
-            
-            # Collect all text output from various methods
-            all_output = []
-            
-            # Capture menu outputs - mock input to avoid EOF errors
-            with patch('builtins.print') as mock_print, patch('builtins.input', return_value=''):
-                miner.show_menu()
-                miner.show_accounts_menu()
-                miner.show_settings_menu()
-                miner.show_statistics()
-                miner.list_accounts()
-            
-            all_output.extend([str(call) for call in mock_print.call_args_list])
-            
-            # Check for Russian text
-            russian_text = ' '.join(all_output)
-            
-            # Check for key Russian words/phrases
-            russian_phrases = [
-                "ГЛАВНОЕ МЕНЮ",
-                "Управление аккаунтами",
-                "Настройки",
-                "Статистика",
-                "Выход",
-                "Добавить аккаунт",
-                "Удалить аккаунт",
-                "Интервал проверки",
-                "Автоматическое получение",
-                "Всего аккаунтов",
-                "Нет добавленных аккаунтов"
+            endpoints_to_test = [
+                ("GET", "/accounts"),
+                ("GET", "/settings"),
+                ("GET", "/statistics"),
+                ("GET", "/monitoring/status")
             ]
             
-            missing_phrases = []
-            for phrase in russian_phrases:
-                if phrase not in russian_text:
-                    missing_phrases.append(phrase)
+            objectid_errors = []
             
-            assert len(missing_phrases) == 0, f"Отсутствуют русские фразы: {missing_phrases}"
+            for method, endpoint in endpoints_to_test:
+                result = self.make_request(method, endpoint)
+                
+                if result["success"] and result["status_code"] == 200:
+                    # Check if response contains any ObjectId serialization errors
+                    response_str = json.dumps(result["data"]) if isinstance(result["data"], (dict, list)) else str(result["data"])
+                    
+                    if "ObjectId" in response_str:
+                        objectid_errors.append(f"{method} {endpoint}: содержит ObjectId в ответе")
+                    
+                    if "not JSON serializable" in response_str:
+                        objectid_errors.append(f"{method} {endpoint}: ошибка сериализации JSON")
             
-            # Check config language setting
-            assert miner.config["settings"]["language"] == "ru", "Язык в настройках не русский"
+            if objectid_errors:
+                self.test_results.append(("❌", "Сериализация ObjectId", f"Найдены ошибки: {objectid_errors}"))
+                return False
             
-            self.test_results.append(("✅", "Русский интерфейс", "Успешно"))
+            self.test_results.append(("✅", "Сериализация ObjectId", "Успешно: все endpoints корректно сериализуют данные"))
             return True
             
         except Exception as e:
-            self.test_results.append(("❌", "Русский интерфейс", f"Ошибка: {str(e)}"))
+            self.test_results.append(("❌", "Сериализация ObjectId", f"Ошибка: {str(e)}"))
+            return False
+    
+    def test_app_loading(self):
+        """Test 8: Проверка загрузки приложения без Network Error"""
+        print("\n🧪 Тест 8: Проверка загрузки приложения...")
+        
+        try:
+            # Test all critical endpoints that frontend needs on startup
+            critical_endpoints = [
+                ("GET", "/accounts", "аккаунты"),
+                ("GET", "/settings", "настройки"),
+                ("GET", "/statistics", "статистика"),
+                ("GET", "/monitoring/status", "статус мониторинга")
+            ]
+            
+            failed_endpoints = []
+            
+            for method, endpoint, description in critical_endpoints:
+                result = self.make_request(method, endpoint)
+                
+                if not result["success"]:
+                    failed_endpoints.append(f"{description} ({method} {endpoint}): {result['error']}")
+                elif result["status_code"] != 200:
+                    failed_endpoints.append(f"{description} ({method} {endpoint}): статус {result['status_code']}")
+            
+            if failed_endpoints:
+                self.test_results.append(("❌", "Загрузка приложения", f"Ошибки: {failed_endpoints}"))
+                return False
+            
+            self.test_results.append(("✅", "Загрузка приложения", "Успешно: все критические endpoints доступны"))
+            return True
+            
+        except Exception as e:
+            self.test_results.append(("❌", "Загрузка приложения", f"Ошибка: {str(e)}"))
             return False
     
     def run_all_tests(self):
         """Запуск всех тестов"""
-        print("🚀 Запуск тестирования Twitch Drops Miner...")
-        print("=" * 60)
+        print("🚀 Запуск тестирования Twitch Drops Miner API...")
+        print(f"🌐 Backend URL: {self.base_url}")
+        print("=" * 70)
         
-        # Setup test environment
-        if not self.setup_test_environment():
-            print("❌ Не удалось настроить тестовую среду")
-            return False
+        # Run all tests
+        tests = [
+            self.test_api_root,
+            self.test_accounts_endpoint,
+            self.test_settings_endpoint,
+            self.test_statistics_endpoint,
+            self.test_monitoring_status_endpoint,
+            self.test_device_code_endpoint,
+            self.test_objectid_serialization,
+            self.test_app_loading
+        ]
         
-        try:
-            # Run all tests
-            tests = [
-                self.test_script_import,
-                self.test_class_initialization,
-                self.test_config_creation,
-                self.test_menu_methods,
-                self.test_config_operations,
-                self.test_account_management_methods,
-                self.test_error_handling,
-                self.test_russian_interface
-            ]
-            
-            passed = 0
-            total = len(tests)
-            
-            for test in tests:
-                if test():
-                    passed += 1
-            
-            # Print results
-            print("\n" + "=" * 60)
-            print("📊 РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ")
-            print("=" * 60)
-            
-            for status, test_name, result in self.test_results:
-                print(f"{status} {test_name}: {result}")
-            
-            print("=" * 60)
-            print(f"✅ Пройдено: {passed}/{total}")
-            print(f"❌ Провалено: {total - passed}/{total}")
-            print(f"📈 Успешность: {(passed/total)*100:.1f}%")
-            
-            return passed == total
-            
-        finally:
-            self.cleanup_test_environment()
+        passed = 0
+        total = len(tests)
+        
+        for test in tests:
+            if test():
+                passed += 1
+        
+        # Print results
+        print("\n" + "=" * 70)
+        print("📊 РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ API")
+        print("=" * 70)
+        
+        for status, test_name, result in self.test_results:
+            print(f"{status} {test_name}: {result}")
+        
+        print("=" * 70)
+        print(f"✅ Пройдено: {passed}/{total}")
+        print(f"❌ Провалено: {total - passed}/{total}")
+        print(f"📈 Успешность: {(passed/total)*100:.1f}%")
+        
+        return passed == total
 
 
 def main():
     """Главная функция тестирования"""
-    print("🎮 Тестирование Twitch Drops Miner")
-    print("📝 Версия тестов: 1.0")
-    print("🎯 Фокус: базовый функционал без API запросов\n")
+    print("🎮 Тестирование Twitch Drops Miner API")
+    print("📝 Версия тестов: 2.0")
+    print("🎯 Фокус: FastAPI endpoints и исправление ObjectId ошибок\n")
     
-    tester = TwitchDropsMinerTest()
+    tester = TwitchDropsMinerAPITest()
     success = tester.run_all_tests()
     
     if success:
