@@ -208,13 +208,24 @@ def get_device_code():
     try:
         data = {
             "client_id": CLIENT_ID,
-            "scopes": "user:read:email chat:read"
+            "scopes": "user:read:email"
         }
         
-        response = requests.post("https://id.twitch.tv/oauth2/device", data=data)
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        
+        logger.info(f"Отправка запроса на получение device code с client_id: {CLIENT_ID}")
+        response = requests.post("https://id.twitch.tv/oauth2/device", data=data, headers=headers, timeout=10)
+        
+        logger.info(f"Статус ответа: {response.status_code}")
+        logger.info(f"Ответ: {response.text}")
+        
         if response.status_code == 200:
             return response.json()
-        return None
+        else:
+            logger.error(f"Ошибка получения device code: {response.status_code} - {response.text}")
+            return None
     except Exception as e:
         logger.error(f"Ошибка получения кода устройства: {e}")
         return None
