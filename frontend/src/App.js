@@ -232,12 +232,24 @@ function App() {
             const pollInterval = setInterval(async () => {
               try {
                 const verifyResponse = await axios.post(`${API_BASE_URL}/api/accounts/${accountId}/verify`);
+                console.log('Verification response:', verifyResponse.data);
+                
                 if (verifyResponse.data.status === 'active') {
                   clearInterval(pollInterval);
                   setShowAddAccountModal(false);
                   setVerificationData(null);
                   await loadAccounts();
-                  alert(`Аккаунт ${verifyResponse.data.username} успешно добавлен!`);
+                  alert(`🎉 Аккаунт ${verifyResponse.data.username} успешно добавлен!`);
+                } else if (verifyResponse.data.status === 'expired') {
+                  clearInterval(pollInterval);
+                  setShowAddAccountModal(false);
+                  setVerificationData(null);
+                  alert('❌ Время авторизации истекло. Попробуйте еще раз.');
+                } else if (verifyResponse.data.status === 'error') {
+                  clearInterval(pollInterval);
+                  setShowAddAccountModal(false);
+                  setVerificationData(null);
+                  alert('❌ Ошибка авторизации. Попробуйте еще раз.');
                 }
               } catch (error) {
                 console.error('Ошибка проверки авторизации:', error);
