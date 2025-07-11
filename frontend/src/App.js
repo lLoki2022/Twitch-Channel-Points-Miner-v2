@@ -224,8 +224,14 @@ function App() {
         // Получаем данные для верификации
         const startVerification = async () => {
           try {
+            console.log('Starting verification process...');
+            console.log('API_BASE_URL:', API_BASE_URL);
+            
             const response = await axios.post(`${API_BASE_URL}/api/accounts/add`);
+            console.log('API response:', response.data);
+            
             setVerificationData(response.data);
+            console.log('Verification data set:', response.data);
             
             // Начинаем проверку авторизации
             const accountId = response.data.account_id;
