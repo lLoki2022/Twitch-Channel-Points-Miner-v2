@@ -162,16 +162,31 @@ async def check_device_authorization(device_code: str) -> Optional[Dict]:
         logger.info(f"Twitch API response status: {response.status_code}")
         logger.info(f"Twitch API response body: {result}")
         
-        # Если статус не 200, но есть JSON ответ с ошибкой - это нормально
-        if response.status_code != 200:
-            # Twitch возвращает ошибки в формате {"error": "authorization_pending", "error_description": "..."}
-            if "error" in result:
-                return result
-            else:
-                logger.error(f"Неожиданный ответ от Twitch API: {result}")
-                return {"error": "server_error", "error_description": "Неожиданный ответ от сервера"}
+        # Если статус 200 - успешная авторизация
+        if response.status_code == 200:
+            return result
         
-        return result
+        # Если статус не 200, обрабатываем ошибки
+        # Twitch может возвращать разные форматы ошибок
+        if "error" in result:
+            # Стандартный формат OAuth2: {"error": "authorization_pending"}
+            return result
+        elif "message" in result:
+            # Альтернативный формат: {"status": 400, "message": "authorization_pending"}
+            message = result["message"]
+            if message == "authorization_pending":
+                return {"error": "authorization_pending"}
+            elif message == "slow_down":
+                return {"error": "slow_down"}
+            elif message == "expired_token":
+                return {"error": "expired_token"}
+            elif message == "access_denied":
+                return {"error": "access_denied"}
+            else:
+                return {"error": "unknown_error", "error_description": message}
+        else:
+            logger.error(f"Неожиданный ответ от Twitch API: {result}")
+            return {"error": "server_error", "error_description": "Неожиданный ответ от сервера"}
         
     except Exception as e:
         logger.error(f"Ошибка проверки авторизации: {str(e)}")
