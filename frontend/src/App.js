@@ -224,6 +224,7 @@ function App() {
       if (showAddAccountModal) {
         // Получаем данные для верификации
         const startVerification = async () => {
+          setIsLoadingVerification(true);
           try {
             console.log('Starting verification process...');
             console.log('API_BASE_URL:', API_BASE_URL);
