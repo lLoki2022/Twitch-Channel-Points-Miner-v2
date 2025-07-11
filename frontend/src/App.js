@@ -821,6 +821,14 @@ const App = () => {
               <span>⚙️</span>
               Настройки
             </button>
+            
+            <button
+              onClick={() => setIsGameSelectionModalOpen(true)}
+              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 flex items-center gap-2"
+            >
+              <span>🎮</span>
+              Выбрать игры
+            </button>
           </div>
         </div>
 
