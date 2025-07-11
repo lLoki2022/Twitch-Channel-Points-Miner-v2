@@ -469,11 +469,20 @@ async def monitor_drops_for_account(account_id: str):
                         {"$set": {"access_token": access_token}}
                     )
             
+            # Получить настройки для фильтрации игр
+            settings = await db.settings.find_one({}) or {}
+            monitored_games = settings.get("monitored_games", [])
+            
             # Получить кампании дропов
             campaigns = await get_drops_campaigns(access_token)
             
             drops_claimed = 0
             for campaign in campaigns:
+                # Проверить, нужно ли мониторить эту игру
+                game_id = campaign.get("game", {}).get("id")
+                if monitored_games and game_id not in monitored_games:
+                    continue  # Пропустить игры, которые не выбраны для мониторинга
+                
                 campaign_self = campaign.get("self", {})
                 if not campaign_self.get("isAccountConnected", False):
                     continue
@@ -495,7 +504,8 @@ async def monitor_drops_for_account(account_id: str):
                                 "data": {
                                     "account": username,
                                     "drop_name": drop.get("name", "Неизвестный дроп"),
-                                    "campaign": campaign.get("name", "Неизвестная кампания")
+                                    "campaign": campaign.get("name", "Неизвестная кампания"),
+                                    "game": campaign.get("game", {}).get("displayName", "Неизвестная игра")
                                 }
                             })
             
@@ -512,7 +522,6 @@ async def monitor_drops_for_account(account_id: str):
             )
             
             # Получить настройки для интервала
-            settings = await db.settings.find_one({}) or {"check_interval": 60}
             check_interval = settings.get("check_interval", 60)
             
             await asyncio.sleep(check_interval)
