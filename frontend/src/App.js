@@ -689,7 +689,10 @@ const App = () => {
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         settings={settings}
-        onSettingsUpdate={loadData}
+        onSettingsUpdate={async () => {
+          await loadData();
+          addNotification('✅ Настройки сохранены!');
+        }}
       />
     </div>
   );
