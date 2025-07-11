@@ -222,114 +222,204 @@ function App() {
     const [verificationData, setVerificationData] = useState(null);
     const [isVerifying, setIsVerifying] = useState(false);
     const [isLoadingVerification, setIsLoadingVerification] = useState(false);
+    const [error, setError] = useState(null);
+    const [debugInfo, setDebugInfo] = useState(null);
+
+    const startVerification = async () => {
+      setIsLoadingVerification(true);
+      setError(null);
+      setDebugInfo(null);
+      
+      try {
+        console.log('🚀 Начинаем процесс верификации...');
+        console.log('📡 API_BASE_URL:', API_BASE_URL);
+        
+        const response = await axios.post(`${API_BASE_URL}/api/accounts/add`, {}, {
+          timeout: 15000,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        console.log('✅ Успешный ответ API:', response.data);
+        setVerificationData(response.data);
+        setDebugInfo({
+          status: 'success',
+          url: `${API_BASE_URL}/api/accounts/add`,
+          response: response.data
+        });
+        
+        // Начинаем проверку авторизации
+        const accountId = response.data.account_id;
+        let pollCount = 0;
+        const maxPolls = 120; // 10 минут (5 секунд * 120)
+        
+        const pollInterval = setInterval(async () => {
+          pollCount++;
+          
+          try {
+            console.log(`🔄 Проверка авторизации #${pollCount}...`);
+            const verifyResponse = await axios.post(`${API_BASE_URL}/api/accounts/${accountId}/verify`, {}, {
+              timeout: 10000
+            });
+            
+            console.log('📝 Статус верификации:', verifyResponse.data);
+            
+            if (verifyResponse.data.status === 'active') {
+              clearInterval(pollInterval);
+              setShowAddAccountModal(false);
+              setVerificationData(null);
+              setError(null);
+              await loadAccounts();
+              alert(`🎉 Аккаунт ${verifyResponse.data.username} успешно добавлен!`);
+            } else if (verifyResponse.data.status === 'expired') {
+              clearInterval(pollInterval);
+              setError('⏰ Время авторизации истекло. Попробуйте еще раз.');
+            } else if (verifyResponse.data.status === 'error') {
+              clearInterval(pollInterval);
+              setError('❌ Ошибка авторизации: ' + (verifyResponse.data.message || 'Неизвестная ошибка'));
+            }
+          } catch (pollError) {
+            console.error('❌ Ошибка проверки авторизации:', pollError);
+            if (pollCount >= maxPolls) {
+              clearInterval(pollInterval);
+              setError('⏰ Превышено время ожидания авторизации');
+            }
+          }
+        }, 5000);
+
+        // Останавливаем проверку через 10 минут
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setIsVerifying(false);
+          if (!error) {
+            setError('⏰ Время авторизации истекло');
+          }
+        }, 600000);
+        
+      } catch (error) {
+        console.error('❌ Ошибка начала верификации:', error);
+        
+        let errorMessage = 'Неизвестная ошибка';
+        let debugDetails = {
+          status: 'error',
+          url: `${API_BASE_URL}/api/accounts/add`,
+          error: error.message
+        };
+        
+        if (error.code === 'ECONNABORTED') {
+          errorMessage = 'Превышено время ожидания. Проверьте соединение с интернетом.';
+        } else if (error.response) {
+          errorMessage = `Ошибка сервера: ${error.response.status} - ${error.response.data?.detail || error.response.statusText}`;
+          debugDetails.response = error.response.data;
+          debugDetails.status_code = error.response.status;
+        } else if (error.request) {
+          errorMessage = 'Не удалось связаться с сервером. Проверьте подключение к интернету.';
+          debugDetails.request_details = 'No response received';
+        }
+        
+        setError(errorMessage);
+        setDebugInfo(debugDetails);
+      } finally {
+        setIsLoadingVerification(false);
+      }
+    };
 
     useEffect(() => {
       if (showAddAccountModal) {
-        // Получаем данные для верификации
-        const startVerification = async () => {
-          setIsLoadingVerification(true);
-          try {
-            console.log('Starting verification process...');
-            console.log('API_BASE_URL:', API_BASE_URL);
-            
-            const response = await axios.post(`${API_BASE_URL}/api/accounts/add`);
-            console.log('API response:', response.data);
-            
-            setVerificationData(response.data);
-            console.log('Verification data set:', response.data);
-            
-            // Начинаем проверку авторизации
-            const accountId = response.data.account_id;
-            const pollInterval = setInterval(async () => {
-              try {
-                const verifyResponse = await axios.post(`${API_BASE_URL}/api/accounts/${accountId}/verify`);
-                console.log('Verification response:', verifyResponse.data);
-                
-                if (verifyResponse.data.status === 'active') {
-                  clearInterval(pollInterval);
-                  setShowAddAccountModal(false);
-                  setVerificationData(null);
-                  await loadAccounts();
-                  alert(`🎉 Аккаунт ${verifyResponse.data.username} успешно добавлен!`);
-                } else if (verifyResponse.data.status === 'expired') {
-                  clearInterval(pollInterval);
-                  setShowAddAccountModal(false);
-                  setVerificationData(null);
-                  alert('❌ Время авторизации истекло. Попробуйте еще раз.');
-                } else if (verifyResponse.data.status === 'error') {
-                  clearInterval(pollInterval);
-                  setShowAddAccountModal(false);
-                  setVerificationData(null);
-                  alert('❌ Ошибка авторизации. Попробуйте еще раз.');
-                }
-              } catch (error) {
-                console.error('Ошибка проверки авторизации:', error);
-              }
-            }, 5000);
-
-            // Останавливаем проверку через 10 минут
-            setTimeout(() => {
-              clearInterval(pollInterval);
-              setIsVerifying(false);
-            }, 600000);
-            
-          } catch (error) {
-            console.error('Ошибка начала верификации:', error);
-            console.error('Error details:', error.response?.data || error.message);
-            setShowAddAccountModal(false);
-            alert('Ошибка при получении кода активации: ' + (error.response?.data?.detail || error.message));
-          } finally {
-            setIsLoadingVerification(false);
-          }
-        };
-
         startVerification();
       }
     }, [showAddAccountModal]);
 
+    const retryVerification = () => {
+      setError(null);
+      setVerificationData(null);
+      setDebugInfo(null);
+      startVerification();
+    };
+
     return (
       <div className="modal">
         <div className="modal-content">
-          <h3>Добавление нового аккаунта</h3>
+          <h3>🔗 Добавление нового аккаунта Twitch</h3>
           
           {isLoadingVerification && (
-            <div style={{textAlign: 'center', padding: '20px'}}>
-              <div className="loading">
-                <div className="spinner"></div>
-                <span style={{marginLeft: '10px'}}>Получение кода активации...</span>
-              </div>
+            <div className="loading">
+              <div className="spinner"></div>
+              <span style={{marginLeft: '10px'}}>Получение кода активации...</span>
             </div>
           )}
           
-          {!isLoadingVerification && verificationData && (
+          {error && (
+            <div className="network-error">
+              <h4>⚠️ Ошибка подключения</h4>
+              <p>{error}</p>
+              <button className="retry-button" onClick={retryVerification}>
+                <RefreshCw size={16} style={{marginRight: '8px'}} />
+                Попробовать снова
+              </button>
+              
+              {debugInfo && (
+                <div className="debug-info">
+                  <h5>🔍 Отладочная информация:</h5>
+                  <div>URL: {debugInfo.url}</div>
+                  <div>Статус: {debugInfo.status}</div>
+                  {debugInfo.status_code && <div>HTTP статус: {debugInfo.status_code}</div>}
+                  {debugInfo.error && <div>Ошибка: {debugInfo.error}</div>}
+                  {debugInfo.response && <div>Ответ: {JSON.stringify(debugInfo.response, null, 2)}</div>}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {!isLoadingVerification && !error && verificationData && (
             <div className="verification-code">
-              <h4>Код активации:</h4>
-              <div className="code" style={{fontSize: '24px', fontWeight: 'bold', color: '#9146ff', padding: '10px', border: '2px solid #9146ff', borderRadius: '8px', textAlign: 'center', marginBottom: '15px'}}>
-                {verificationData.user_code}
+              <div className="success-message">
+                <h4>✅ Код активации получен!</h4>
               </div>
-              <div style={{backgroundColor: '#f0f0f0', padding: '15px', borderRadius: '8px', marginBottom: '15px'}}>
-                <p style={{margin: '5px 0', fontWeight: 'bold'}}>
-                  1. Откройте новую вкладку в браузере и перейдите на: 
-                  <a href="https://www.twitch.tv/activate" target="_blank" rel="noopener noreferrer" 
-                     style={{color: '#9146ff', textDecoration: 'underline', display: 'block', fontSize: '18px', fontWeight: 'bold'}}>
-                     https://www.twitch.tv/activate
+              
+              <div className="code-display">
+                <div className="code-text">
+                  {verificationData.user_code}
+                </div>
+              </div>
+              
+              <div style={{backgroundColor: '#16213e', padding: '20px', borderRadius: '12px', marginBottom: '20px'}}>
+                <h4 style={{color: '#9146ff', marginBottom: '15px'}}>📋 Инструкция по активации:</h4>
+                
+                <div className="instruction-step">
+                  <strong>1.</strong> Откройте новую вкладку в браузере
+                </div>
+                
+                <div className="instruction-step">
+                  <strong>2.</strong> Перейдите по ссылке:
+                  <a href="https://www.twitch.tv/activate" target="_blank" rel="noopener noreferrer" className="twitch-link">
+                    <ExternalLink size={16} style={{marginRight: '8px'}} />
+                    https://www.twitch.tv/activate
                   </a>
-                </p>
-                <p style={{margin: '5px 0'}}>2. Введите код активации: <strong>{verificationData.user_code}</strong></p>
-                <p style={{margin: '5px 0'}}>3. Войдите в свой аккаунт Twitch</p>
-                <p style={{margin: '5px 0'}}>4. Подтвердите авторизацию приложения</p>
-                <p style={{margin: '5px 0', fontWeight: 'bold', color: '#2ed573'}}>5. Вернитесь сюда - окно автоматически закроется!</p>
+                </div>
+                
+                <div className="instruction-step">
+                  <strong>3.</strong> Введите код активации: <span style={{color: '#9146ff', fontWeight: 'bold'}}>{verificationData.user_code}</span>
+                </div>
+                
+                <div className="instruction-step">
+                  <strong>4.</strong> Войдите в свой аккаунт Twitch
+                </div>
+                
+                <div className="instruction-step">
+                  <strong>5.</strong> Подтвердите авторизацию приложения
+                </div>
+                
+                <div className="instruction-step" style={{borderColor: '#2ed573', color: '#2ed573'}}>
+                  <strong>6.</strong> Вернитесь сюда - окно автоматически закроется!
+                </div>
               </div>
-              <div className="loading">
+              
+              <div className="waiting-animation pulse">
                 <div className="spinner"></div>
                 <span style={{marginLeft: '10px', fontWeight: 'bold'}}>Ожидание авторизации на Twitch...</span>
               </div>
-            </div>
-          )}
-          
-          {!isLoadingVerification && !verificationData && (
-            <div style={{textAlign: 'center', padding: '20px'}}>
-              <p>Не удалось получить код активации. Попробуйте еще раз.</p>
             </div>
           )}
 
@@ -339,6 +429,8 @@ function App() {
               onClick={() => {
                 setShowAddAccountModal(false);
                 setVerificationData(null);
+                setError(null);
+                setDebugInfo(null);
               }}
             >
               Отменить
