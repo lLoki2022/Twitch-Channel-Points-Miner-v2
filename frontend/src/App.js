@@ -323,6 +323,12 @@ function App() {
               </div>
             </div>
           )}
+          
+          {!isLoadingVerification && !verificationData && (
+            <div style={{textAlign: 'center', padding: '20px'}}>
+              <p>Не удалось получить код активации. Попробуйте еще раз.</p>
+            </div>
+          )}
 
           <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px'}}>
             <button 
