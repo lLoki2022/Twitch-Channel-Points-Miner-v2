@@ -294,6 +294,49 @@ async def get_drops_campaigns(access_token: str) -> List[Dict]:
         logger.error(f"Ошибка получения кампаний дропов: {str(e)}")
         return []
 
+async def get_streamers_for_game(game_id: str, access_token: str):
+    """Получить стримеров для конкретной игры с дропами"""
+    headers = {
+        'Client-ID': TWITCH_CLIENT_ID,
+        'Authorization': f'Bearer {access_token}'
+    }
+    
+    try:
+        # Получить активные стримы для игры
+        response = requests.get(
+            f"{TWITCH_API_BASE}/streams",
+            headers=headers,
+            params={'game_id': game_id, 'first': 20}
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            streamers = []
+            
+            for stream in data.get('data', []):
+                streamers.append({
+                    'id': stream['id'],
+                    'user_id': stream['user_id'],
+                    'user_login': stream['user_login'],
+                    'user_name': stream['user_name'],
+                    'game_id': stream['game_id'],
+                    'game_name': stream['game_name'],
+                    'title': stream['title'],
+                    'viewer_count': stream['viewer_count'],
+                    'started_at': stream['started_at'],
+                    'thumbnail_url': stream['thumbnail_url'],
+                    'is_mature': stream['is_mature']
+                })
+            
+            # Сортировать по количеству зрителей (больше шансов на стабильность)
+            streamers.sort(key=lambda x: x['viewer_count'], reverse=True)
+            return streamers
+        
+        return []
+    except Exception as e:
+        logger.error(f"Ошибка получения стримеров для игры {game_id}: {str(e)}")
+        return []
+
 async def get_games_with_drops():
     """Получить популярные игры с дропами"""
     # Известные игры с дропами (статический список)
