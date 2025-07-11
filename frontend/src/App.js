@@ -206,7 +206,7 @@ const AddAccountModal = ({ isOpen, onClose, onAccountAdded }) => {
 };
 
 // Компонент аккаунта
-const AccountCard = ({ account, onDelete }) => {
+const AccountCard = ({ account, onDelete, loadData, addNotification }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   
   const handleDelete = async () => {
