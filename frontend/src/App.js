@@ -389,6 +389,8 @@ const App = () => {
 
   const loadData = async () => {
     try {
+      console.log('Loading data...');
+      
       const [accountsRes, settingsRes, statisticsRes, monitoringRes] = await Promise.all([
         axios.get(`${API}/accounts`),
         axios.get(`${API}/settings`),
@@ -396,12 +398,21 @@ const App = () => {
         axios.get(`${API}/monitoring/status`)
       ]);
       
+      console.log('Accounts loaded:', accountsRes.data);
+      console.log('Settings loaded:', settingsRes.data);
+      console.log('Statistics loaded:', statisticsRes.data);
+      console.log('Monitoring loaded:', monitoringRes.data);
+      
       setAccounts(accountsRes.data);
       setSettings(settingsRes.data);
       setStatistics(statisticsRes.data);
       setMonitoring(monitoringRes.data);
+      
+      console.log('Data loaded successfully');
     } catch (err) {
       console.error('Ошибка загрузки данных:', err);
+      // Показать уведомление об ошибке
+      addNotification('❌ Ошибка загрузки данных: ' + (err.response?.data?.detail || err.message));
     } finally {
       setIsLoading(false);
     }
