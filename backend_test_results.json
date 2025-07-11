@@ -1,0 +1,93 @@
+[
+  {
+    "test": "Server Connectivity",
+    "status": "PASS",
+    "message": "Server responding correctly on http://localhost:8001",
+    "timestamp": "2025-07-11T11:20:38.681060",
+    "details": null
+  },
+  {
+    "test": "Add Account Endpoint",
+    "status": "FAIL",
+    "message": "Incorrect verification URI: https://www.twitch.tv/activate?device-code=KFFWDNQN",
+    "timestamp": "2025-07-11T11:20:38.967543",
+    "details": null
+  },
+  {
+    "test": "Get Accounts Endpoint",
+    "status": "PASS",
+    "message": "Accounts list retrieved successfully (11 accounts)",
+    "timestamp": "2025-07-11T11:20:38.971866",
+    "details": null
+  },
+  {
+    "test": "Logs Endpoint",
+    "status": "PASS",
+    "message": "Logs endpoint working (0 log entries)",
+    "timestamp": "2025-07-11T11:20:38.974960",
+    "details": null
+  },
+  {
+    "test": "Get Games Endpoint",
+    "status": "PASS",
+    "message": "Correctly handles no active accounts scenario",
+    "timestamp": "2025-07-11T11:20:38.978085",
+    "details": null
+  },
+  {
+    "test": "Start Farming Endpoint",
+    "status": "WARN",
+    "message": "Unexpected response: 500",
+    "timestamp": "2025-07-11T11:20:38.981559",
+    "details": null
+  },
+  {
+    "test": "Stop Farming Endpoint",
+    "status": "PASS",
+    "message": "Stop farming working: \u0410\u043a\u0442\u0438\u0432\u043d\u0430\u044f \u0441\u0435\u0441\u0441\u0438\u044f \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u0430",
+    "timestamp": "2025-07-11T11:20:38.984413",
+    "details": null
+  },
+  {
+    "test": "Farming Status Endpoint",
+    "status": "PASS",
+    "message": "Farming status working (0 sessions)",
+    "timestamp": "2025-07-11T11:20:38.986767",
+    "details": null
+  },
+  {
+    "test": "Add Account Endpoint",
+    "status": "FAIL",
+    "message": "Incorrect verification URI: https://www.twitch.tv/activate?device-code=PXFJSTGC",
+    "timestamp": "2025-07-11T11:20:39.228733",
+    "details": null
+  },
+  {
+    "test": "Add Account Endpoint",
+    "status": "FAIL",
+    "message": "Incorrect verification URI: https://www.twitch.tv/activate?device-code=DLCSRLLT",
+    "timestamp": "2025-07-11T11:20:39.444838",
+    "details": null
+  },
+  {
+    "test": "Database Connectivity",
+    "status": "FAIL",
+    "message": "Database write operation failed",
+    "timestamp": "2025-07-11T11:20:39.444976",
+    "details": null
+  },
+  {
+    "test": "Error Handling - Invalid Account",
+    "status": "FAIL",
+    "message": "Unexpected status for invalid account: 500",
+    "timestamp": "2025-07-11T11:20:39.455336",
+    "details": null
+  },
+  {
+    "test": "Error Handling - Malformed JSON",
+    "status": "PASS",
+    "message": "Correctly handles malformed JSON",
+    "timestamp": "2025-07-11T11:20:39.458179",
+    "details": null
+  }
+]
