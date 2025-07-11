@@ -377,6 +377,181 @@ const SettingsModal = ({ isOpen, onClose, settings, onSettingsUpdate }) => {
   );
 };
 
+// Компонент выбора игр
+const GameSelectionModal = ({ isOpen, onClose, settings, onSettingsUpdate }) => {
+  const [games, setGames] = useState([]);
+  const [selectedGames, setSelectedGames] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadGames();
+      setSelectedGames(settings.monitored_games || []);
+    }
+  }, [isOpen, settings]);
+
+  const loadGames = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(`${API}/games`);
+      setGames(response.data);
+    } catch (err) {
+      console.error('Ошибка загрузки игр:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const searchGames = async (query) => {
+    if (!query || query.length < 2) {
+      loadGames();
+      return;
+    }
+    
+    setIsSearching(true);
+    try {
+      const response = await axios.get(`${API}/games/search?q=${encodeURIComponent(query)}`);
+      setGames(response.data);
+    } catch (err) {
+      console.error('Ошибка поиска игр:', err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    // Debounce search
+    clearTimeout(window.searchTimeout);
+    window.searchTimeout = setTimeout(() => {
+      searchGames(query);
+    }, 500);
+  };
+
+  const toggleGame = (gameId) => {
+    setSelectedGames(prev => 
+      prev.includes(gameId) 
+        ? prev.filter(id => id !== gameId)
+        : [...prev, gameId]
+    );
+  };
+
+  const handleSave = async () => {
+    try {
+      await axios.put(`${API}/settings`, { monitored_games: selectedGames });
+      onSettingsUpdate();
+      onClose();
+    } catch (err) {
+      alert('Ошибка сохранения настроек: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-800">Выбор игр для мониторинга</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 text-2xl"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Поиск игр..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+          {isSearching && (
+            <p className="text-sm text-gray-500 mt-1">Поиск...</p>
+          )}
+        </div>
+
+        <div className="mb-4">
+          <p className="text-sm text-gray-600">
+            Выбрано игр: <span className="font-semibold">{selectedGames.length}</span>
+            {selectedGames.length === 0 && <span className="text-orange-600"> (будут мониториться все доступные игры)</span>}
+          </p>
+        </div>
+
+        <div className="overflow-y-auto max-h-96 mb-4">
+          {isLoading ? (
+            <div className="text-center py-8">
+              <p>Загрузка игр...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {games.map(game => (
+                <div 
+                  key={game.id}
+                  className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                    selectedGames.includes(game.id) 
+                      ? 'border-purple-500 bg-purple-50' 
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => toggleGame(game.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={game.box_art_url} 
+                      alt={game.name}
+                      className="w-16 h-20 object-cover rounded"
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/144x192?text=No+Image';
+                      }}
+                    />
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900">{game.name}</h3>
+                      {game.has_drops && (
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                          Дропы доступны
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-shrink-0">
+                      {selectedGames.includes(game.id) ? (
+                        <span className="text-purple-600 text-xl">✓</span>
+                      ) : (
+                        <span className="text-gray-400 text-xl">○</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={handleSave}
+            className="flex-1 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700"
+          >
+            Сохранить
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400"
+          >
+            Отмена
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Главный компонент
 const App = () => {
   const [accounts, setAccounts] = useState([]);
