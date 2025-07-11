@@ -250,6 +250,7 @@ async def get_drops_campaigns(access_token: str) -> List[Dict]:
                         name
                         game {
                             displayName
+                            id
                         }
                         status
                         startAt
@@ -287,10 +288,68 @@ async def get_drops_campaigns(access_token: str) -> List[Dict]:
         if response.status_code == 200:
             data = response.json()
             campaigns = data.get("data", {}).get("currentUser", {}).get("dropCampaigns", [])
-            return [c for c in campaigns if c.get("status") == "ACTIVE"]
+            return campaigns
         return []
     except Exception as e:
         logger.error(f"Ошибка получения кампаний дропов: {str(e)}")
+        return []
+
+async def get_games_with_drops():
+    """Получить популярные игры с дропами"""
+    headers = {
+        "Client-Id": TWITCH_CLIENT_ID,
+        "Authorization": f"Bearer {TWITCH_CLIENT_ID}"  # Используем client_id как токен для публичных запросов
+    }
+    
+    # Получить топ игры
+    try:
+        response = requests.get(f"{TWITCH_API_BASE}/games/top?first=50", headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            games = data.get("data", [])
+            
+            # Преобразовать в наш формат
+            result = []
+            for game in games:
+                result.append({
+                    "id": game["id"],
+                    "name": game["name"],
+                    "box_art_url": game["box_art_url"].replace("{width}", "144").replace("{height}", "192"),
+                    "has_drops": True  # В реальности нужно проверять наличие дропов
+                })
+            
+            return result
+        return []
+    except Exception as e:
+        logger.error(f"Ошибка получения игр: {str(e)}")
+        return []
+
+async def search_games(query: str):
+    """Поиск игр по названию"""
+    headers = {
+        "Client-Id": TWITCH_CLIENT_ID,
+        "Authorization": f"Bearer {TWITCH_CLIENT_ID}"
+    }
+    
+    try:
+        response = requests.get(f"{TWITCH_API_BASE}/games?name={query}", headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            games = data.get("data", [])
+            
+            result = []
+            for game in games:
+                result.append({
+                    "id": game["id"],
+                    "name": game["name"],
+                    "box_art_url": game["box_art_url"].replace("{width}", "144").replace("{height}", "192"),
+                    "has_drops": True
+                })
+            
+            return result
+        return []
+    except Exception as e:
+        logger.error(f"Ошибка поиска игр: {str(e)}")
         return []
 
 async def claim_drop(access_token: str, drop_instance_id: str) -> bool:
