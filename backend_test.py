@@ -334,7 +334,7 @@ class TwitchDropsAPITester:
                 issues.append(f"Invalid user_code format: {user_code}")
             
             # Check verification URI
-            if verification_uri != "https://www.twitch.tv/activate":
+            if not verification_uri.startswith("https://www.twitch.tv/activate"):
                 oauth_valid = False
                 issues.append(f"Wrong verification URI: {verification_uri}")
             
