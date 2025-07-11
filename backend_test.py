@@ -663,7 +663,14 @@ class TwitchDropsMinerAPITest:
             self.test_monitoring_status_endpoint,
             self.test_device_code_endpoint,
             self.test_objectid_serialization,
-            self.test_app_loading
+            self.test_app_loading,
+            self.test_games_endpoints,
+            self.test_games_search_endpoint,
+            self.test_game_streamers_endpoint,
+            self.test_drops_progress_endpoints,
+            self.test_account_drops_progress_endpoint,
+            self.test_twitch_account_model_fields,
+            self.test_enhanced_monitoring_system
         ]
         
         passed = 0
