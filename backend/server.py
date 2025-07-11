@@ -404,7 +404,7 @@ async def root():
 # Settings endpoints
 @api_router.get("/settings", response_model=Settings)
 async def get_settings():
-    settings = await db.settings.find_one({})
+    settings = await db.settings.find_one({}, {"_id": 0})
     if not settings:
         # Создать настройки по умолчанию
         default_settings = Settings()
@@ -414,7 +414,7 @@ async def get_settings():
 
 @api_router.put("/settings", response_model=Settings)
 async def update_settings(settings_update: SettingsUpdate):
-    current_settings = await db.settings.find_one({})
+    current_settings = await db.settings.find_one({}, {"_id": 0})
     if not current_settings:
         current_settings = Settings().dict()
     
@@ -428,7 +428,7 @@ async def update_settings(settings_update: SettingsUpdate):
         upsert=True
     )
     
-    updated_settings = await db.settings.find_one({})
+    updated_settings = await db.settings.find_one({}, {"_id": 0})
     return Settings(**updated_settings)
 
 # Account management endpoints
