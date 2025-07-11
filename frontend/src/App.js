@@ -268,19 +268,25 @@ function App() {
           {verificationData && (
             <div className="verification-code">
               <h4>Код активации:</h4>
-              <div className="code">{verificationData.user_code}</div>
-              <p>
-                1. Откройте <a href="https://www.twitch.tv/activate" target="_blank" rel="noopener noreferrer" 
-                   style={{color: '#9146ff', textDecoration: 'underline'}}>
-                   twitch.tv/activate
-                </a>
-              </p>
-              <p>2. Введите код выше</p>
-              <p>3. Войдите в свой аккаунт Twitch</p>
-              <p>4. Дождитесь подтверждения</p>
+              <div className="code" style={{fontSize: '24px', fontWeight: 'bold', color: '#9146ff', padding: '10px', border: '2px solid #9146ff', borderRadius: '8px', textAlign: 'center', marginBottom: '15px'}}>
+                {verificationData.user_code}
+              </div>
+              <div style={{backgroundColor: '#f0f0f0', padding: '15px', borderRadius: '8px', marginBottom: '15px'}}>
+                <p style={{margin: '5px 0', fontWeight: 'bold'}}>
+                  1. Откройте новую вкладку в браузере и перейдите на: 
+                  <a href="https://www.twitch.tv/activate" target="_blank" rel="noopener noreferrer" 
+                     style={{color: '#9146ff', textDecoration: 'underline', display: 'block', fontSize: '18px', fontWeight: 'bold'}}>
+                     https://www.twitch.tv/activate
+                  </a>
+                </p>
+                <p style={{margin: '5px 0'}}>2. Введите код активации: <strong>{verificationData.user_code}</strong></p>
+                <p style={{margin: '5px 0'}}>3. Войдите в свой аккаунт Twitch</p>
+                <p style={{margin: '5px 0'}}>4. Подтвердите авторизацию приложения</p>
+                <p style={{margin: '5px 0', fontWeight: 'bold', color: '#2ed573'}}>5. Вернитесь сюда - окно автоматически закроется!</p>
+              </div>
               <div className="loading">
                 <div className="spinner"></div>
-                <span style={{marginLeft: '10px'}}>Ожидание авторизации...</span>
+                <span style={{marginLeft: '10px', fontWeight: 'bold'}}>Ожидание авторизации на Twitch...</span>
               </div>
             </div>
           )}
