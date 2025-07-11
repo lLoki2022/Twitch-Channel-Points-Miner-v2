@@ -130,9 +130,17 @@ async def get_device_code() -> Optional[Dict]:
     
     try:
         response = requests.post(device_code_url, data=device_data)
+        
+        logger.info(f"Device code request status: {response.status_code}")
+        
         if response.status_code == 200:
-            return response.json()
-        return None
+            result = response.json()
+            logger.info(f"Device code created successfully: {result.get('user_code', 'Unknown')}")
+            return result
+        else:
+            logger.error(f"Failed to get device code: {response.status_code} - {response.text}")
+            return None
+            
     except Exception as e:
         logger.error(f"Ошибка получения device code: {str(e)}")
         return None
