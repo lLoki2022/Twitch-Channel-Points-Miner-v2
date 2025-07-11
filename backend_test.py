@@ -699,8 +699,14 @@ class TwitchDropsMinerAPITest:
 def main():
     """Главная функция тестирования"""
     print("🎮 Тестирование Twitch Drops Miner API")
-    print("📝 Версия тестов: 2.0")
-    print("🎯 Фокус: FastAPI endpoints и исправление ObjectId ошибок\n")
+    print("📝 Версия тестов: 3.0")
+    print("🎯 Фокус: Новая функциональность Twitch Drops Miner")
+    print("🔍 Тестируемые компоненты:")
+    print("   • Новые API endpoints для стримеров и прогресса дропов")
+    print("   • Улучшенная система мониторинга с автоматическим выбором стримеров")
+    print("   • Модели данных с новыми полями (current_stream, current_game)")
+    print("   • WebSocket уведомления (streamer_selected, drop_progress)")
+    print()
     
     tester = TwitchDropsMinerAPITest()
     success = tester.run_all_tests()
