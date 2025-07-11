@@ -1028,6 +1028,11 @@ const App = () => {
           addNotification('🎮 Игры для мониторинга обновлены!');
         }}
       />
+      
+      <DropsProgressPanel
+        isOpen={isDropsProgressModalOpen}
+        onClose={() => setIsDropsProgressModalOpen(false)}
+      />
     </div>
   );
 };
