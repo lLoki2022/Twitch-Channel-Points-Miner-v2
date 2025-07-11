@@ -682,6 +682,44 @@ async def get_account_drops(account_id: str):
         "campaigns_count": len(campaigns)
     }
 
+# Games endpoints
+@api_router.get("/games", response_model=List[GameInfo])
+async def get_games():
+    """Получить популярные игры с дропами"""
+    games = await get_games_with_drops()
+    return games
+
+@api_router.get("/games/search")
+async def search_games_endpoint(q: str):
+    """Поиск игр по названию"""
+    if not q or len(q) < 2:
+        raise HTTPException(status_code=400, detail="Запрос должен содержать минимум 2 символа")
+    
+    games = await search_games(q)
+    return games
+
+@api_router.get("/games/{game_id}/drops")
+async def get_game_drops(game_id: str):
+    """Получить информацию о дропах для конкретной игры"""
+    # Получить все аккаунты и проверить дропы для игры
+    accounts = await db.accounts.find({}, {"_id": 0}).to_list(1000)
+    
+    game_campaigns = []
+    for account in accounts:
+        campaigns = await get_drops_campaigns(account["access_token"])
+        for campaign in campaigns:
+            if campaign.get("game", {}).get("id") == game_id:
+                game_campaigns.append({
+                    "account": account["username"],
+                    "campaign": campaign
+                })
+    
+    return {
+        "game_id": game_id,
+        "campaigns": game_campaigns,
+        "total_campaigns": len(game_campaigns)
+    }
+
 # Statistics endpoints
 @api_router.get("/statistics")
 async def get_statistics():
