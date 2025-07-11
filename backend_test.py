@@ -334,8 +334,8 @@ class TwitchDropsMinerTest:
             # Collect all text output from various methods
             all_output = []
             
-            # Capture menu outputs
-            with patch('builtins.print') as mock_print:
+            # Capture menu outputs - mock input to avoid EOF errors
+            with patch('builtins.print') as mock_print, patch('builtins.input', return_value=''):
                 miner.show_menu()
                 miner.show_accounts_menu()
                 miner.show_settings_menu()
