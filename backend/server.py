@@ -446,6 +446,10 @@ async def authorize_account(device_code: str):
         
         if token_result.get("error"):
             error_code = token_result["error"]
+            error_description = token_result.get("error_description", "")
+            
+            logger.info(f"Twitch API error: {error_code} - {error_description}")
+            
             if error_code == "authorization_pending":
                 raise HTTPException(status_code=202, detail="Ожидание авторизации")
             elif error_code == "slow_down":
@@ -461,7 +465,7 @@ async def authorize_account(device_code: str):
         refresh_token = token_result.get("refresh_token")
         
         if not access_token:
-            logger.error("Токен доступа не найден в ответе")
+            logger.error(f"Токен доступа не найден в ответе: {token_result}")
             raise HTTPException(status_code=400, detail="Не удалось получить токен доступа")
         
         logger.info("Получение информации о пользователе...")
