@@ -509,7 +509,7 @@ async def claim_drop(access_token: str, drop_instance_id: str) -> bool:
 
 # Background task for monitoring drops
 async def monitor_drops_for_account(account_id: str):
-    """Мониторинг дропов для одного аккаунта"""
+    """Мониторинг дропов для одного аккаунта с автоматическим выбором стримеров"""
     while monitoring_active:
         try:
             # Получить данные аккаунта
@@ -541,12 +541,50 @@ async def monitor_drops_for_account(account_id: str):
             for campaign in campaigns:
                 # Проверить, нужно ли мониторить эту игру
                 game_id = campaign.get("game", {}).get("id")
+                game_name = campaign.get("game", {}).get("displayName", "Неизвестная игра")
+                
                 if monitored_games and game_id not in monitored_games:
                     continue  # Пропустить игры, которые не выбраны для мониторинга
                 
                 campaign_self = campaign.get("self", {})
                 if not campaign_self.get("isAccountConnected", False):
                     continue
+                
+                # Автоматически выбрать стримера для этой игры
+                current_stream = account_data.get("current_stream")
+                current_game = account_data.get("current_game")
+                
+                # Если нет текущего стрима или игра изменилась, выбрать нового стримера
+                if not current_stream or current_game != game_id:
+                    streamers = await get_streamers_for_game(game_id, access_token)
+                    if streamers:
+                        # Выбрать первого стримера (с наибольшим количеством зрителей)
+                        selected_streamer = streamers[0]
+                        
+                        # Обновить информацию о текущем стриме
+                        await db.accounts.update_one(
+                            {"id": account_id},
+                            {
+                                "$set": {
+                                    "current_stream": selected_streamer,
+                                    "current_game": game_id,
+                                    "updated_at": datetime.utcnow()
+                                }
+                            }
+                        )
+                        
+                        # Отправить уведомление о выборе стримера
+                        await manager.send_message({
+                            "type": "streamer_selected",
+                            "data": {
+                                "account": username,
+                                "game": game_name,
+                                "streamer": selected_streamer["user_name"],
+                                "viewer_count": selected_streamer["viewer_count"]
+                            }
+                        })
+                        
+                        current_stream = selected_streamer
                 
                 drops = campaign_self.get("drops", [])
                 
@@ -557,6 +595,45 @@ async def monitor_drops_for_account(account_id: str):
                     is_claimed = drop_self.get("isClaimed", False)
                     drop_instance_id = drop_self.get("dropInstanceID")
                     
+                    # Обновить прогресс дропа в базе данных
+                    await db.drops_progress.update_one(
+                        {"account_id": account_id, "drop_id": drop.get("id")},
+                        {
+                            "$set": {
+                                "account_id": account_id,
+                                "drop_id": drop.get("id"),
+                                "drop_name": drop.get("name", "Неизвестный дроп"),
+                                "campaign_name": campaign.get("name", "Неизвестная кампания"),
+                                "game_name": game_name,
+                                "game_id": game_id,
+                                "required_minutes": required_minutes,
+                                "current_minutes": current_minutes,
+                                "is_claimed": is_claimed,
+                                "streamer_name": current_stream.get("user_name") if current_stream else None,
+                                "streamer_id": current_stream.get("user_id") if current_stream else None,
+                                "last_updated": datetime.utcnow()
+                            }
+                        },
+                        upsert=True
+                    )
+                    
+                    # Отправить обновление прогресса
+                    await manager.send_message({
+                        "type": "drop_progress",
+                        "data": {
+                            "account": username,
+                            "drop_name": drop.get("name", "Неизвестный дроп"),
+                            "campaign": campaign.get("name", "Неизвестная кампания"),
+                            "game": game_name,
+                            "current_minutes": current_minutes,
+                            "required_minutes": required_minutes,
+                            "progress_percent": round((current_minutes / required_minutes) * 100, 2) if required_minutes > 0 else 0,
+                            "streamer": current_stream.get("user_name") if current_stream else "Нет стримера",
+                            "is_claimed": is_claimed
+                        }
+                    })
+                    
+                    # Проверить, можно ли получить дроп
                     if not is_claimed and current_minutes >= required_minutes and drop_instance_id:
                         if await claim_drop(access_token, drop_instance_id):
                             drops_claimed += 1
@@ -566,9 +643,15 @@ async def monitor_drops_for_account(account_id: str):
                                     "account": username,
                                     "drop_name": drop.get("name", "Неизвестный дроп"),
                                     "campaign": campaign.get("name", "Неизвестная кампания"),
-                                    "game": campaign.get("game", {}).get("displayName", "Неизвестная игра")
+                                    "game": game_name
                                 }
                             })
+                            
+                            # Обновить статус дропа как полученного
+                            await db.drops_progress.update_one(
+                                {"account_id": account_id, "drop_id": drop.get("id")},
+                                {"$set": {"is_claimed": True, "last_updated": datetime.utcnow()}}
+                            )
             
             # Обновить статистику аккаунта
             await db.accounts.update_one(
